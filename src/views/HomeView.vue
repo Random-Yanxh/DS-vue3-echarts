@@ -80,7 +80,10 @@ const changeSize = async (value) => {
 .wrapper {
   height: 100%;
   padding: 0 20px;
-  background-color: #161522;
+  background-color: transparent;
+  background-image: url('@/assets/background_16_9.png');
+  background-repeat: no-repeat;
+  background-size: cover;
 
   display: grid;
   grid-template-rows: 8% 50% 10% 25%;
@@ -103,11 +106,9 @@ const changeSize = async (value) => {
 
 .header {
   grid-area: header;
-  background-image: url('@/assets/header_border_dark.png');
-  background-repeat: no-repeat;
-  background-size: cover;
+  background-color: transparent;
   color: white;
-  font-size: 20px;
+  font-size: 22px;
   text-align: center;
   line-height: 80px;
 }

@@ -54,7 +54,7 @@ onMounted(() => {
     height: 100%;
     padding: 15px; /* 减少内边距以适应小屏幕 */
     box-sizing: border-box;
-    background-color: #0a192f;
+    background-color: rgba(10, 25, 47, 0.75);
     color: #e6f7ff;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;

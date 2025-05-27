@@ -2,7 +2,7 @@
   "nodes": [
     {
       "id": "grid1",
-      "name": "大电网",
+      "name": "电网",
       "type": "grid",
       "status": "connected",
       "powerExchange": 500,
@@ -29,14 +29,14 @@
     },
     {
       "id": "pv1",
-      "name": "光伏电站",
+      "name": "光伏板",
       "type": "generation_pv",
       "status": "generating",
       "currentPower": 150,
       "dailyEnergy": 750,
       "x": 350,
       "y": 150,
-      "symbol": "image://data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzRDQUY1MCIvPjxyZWN0IHg9IjE1IiB5PSIxNSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjQUVENTgxIi8+PHJlY3QgeD0iNTUiIHk9IjE1IiB3aWR0aD0iMzAiIGhlaWdodD0iMjAiIGZpbGw9IiNBRUQ1ODEiLz48cmVjdCB4PSIxNSIgeT0iNDUiIHdpZHRoPSIzMCIgaGVpZ2h0PSIyMCIgZmlsbD0iI0FFRDU4MSIvPjxyZWN0IHg9IjU1IiB5PSI0NSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjQUVENTgxIi8+PGxpbmUgeDE9IjUwIiB5MT0iNzAiIHgyPSI1MCIgeTI9IjkwIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIiLz48bGluZSB4MT0iNDAiIHkxPSI5MCIgeDI9IjYwIiB5Mj0iOTAiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS1widthPSIyIi8+PC9zdmc+",
+      "symbol": "image://scr/icons8-太阳能板-60.png",
       "symbolSize": 45
     },
     {
@@ -71,7 +71,7 @@
       "powerFlow": 500,
       "lineStyle": {
         "color": "#1E90FF",
-        "width": 3
+        "width": 5
       }
     },
     {

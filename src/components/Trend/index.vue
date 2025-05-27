@@ -40,6 +40,7 @@ const handleChartData = () => {
 // echarts配置
 const updataChart = () => {
     const option = {
+        backgroundColor: 'transparent', // 添加此行
         xAxis: {
             type: 'category',
             boundaryGap: false,
@@ -170,6 +171,7 @@ defineExpose({
 }
 
 .trend_container {
+background-color: rgba(10, 25, 47, 0.75);
     position: relative;
 }
 

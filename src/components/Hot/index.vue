@@ -19,8 +19,9 @@ const getData = async () => {
 
 const updataChart = () => {
     const option = {
+        backgroundColor: 'transparent', // 添加此行
         title: {
-            text: `▎热销商品的占比——${currentData.value.name}`,
+            text: `▎占比——${currentData.value.name}`,
             top: '5%',
             left: 20,
         },
@@ -119,6 +120,7 @@ defineExpose({
 
 <style scoped>
 .hot_container {
+background-color: rgba(10, 25, 47, 0.75);
     position: relative;
 }
 

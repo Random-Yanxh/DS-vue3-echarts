@@ -32,6 +32,7 @@ const updataChart = () => {
         // 可以根据需要添加更多类型
     ];
     const option = {
+        backgroundColor: 'transparent', // 添加此行
         title: {
             text: "▎微电网拓扑图",
             left: 20,
@@ -93,7 +94,7 @@ const updataChart = () => {
                 links: [], // 将由 updataChartData 填充
                 lineStyle: {
                     opacity: 0.9,
-                    width: 2,
+                    width: 4,
                     curveness: 0
                 },
                 // symbolSize 已在 JSON 中为每个节点分别定义，或此处设置一个统一的默认值
@@ -103,7 +104,7 @@ const updataChart = () => {
                 emphasis: { // 高亮状态
                     focus: 'adjacency',
                     lineStyle: {
-                        width: 4
+                        width: 6
                     }
                 }
             }
@@ -201,7 +202,13 @@ defineExpose({
 </template>
 
 <style scoped>
-.map_container,
+.map_container {
+    background-color: rgba(10, 25, 47, 0.75);
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
 .map_chart {
     width: 100%;
     height: 100%;

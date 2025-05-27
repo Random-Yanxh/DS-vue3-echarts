@@ -26,7 +26,7 @@ import useRequest from '@/composables/useRequest'
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-color: #0a192f;
+    background-color: rgba(10, 25, 47, 0.75);
     padding: 20px;
     box-sizing: border-box;
 }
