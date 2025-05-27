@@ -31,50 +31,18 @@ const dataTypesConfig = {
     chartName: 'graph/wq',
     yAxisName: '功率 (var)', // 假设单位为 var
     seriesName: '无功功率' // 单系列时的名称
-  },
-  graph: {
-    text: '地区销量趋势', // 对应原 trend.json/graph.json
-    chartName: 'graph/graph',
-    yAxisName: '销量 (万)', // 假设单位
-    // seriesName: null // 多系列时，名称来自数据本身
   }
-  // 后续可以添加更多数据类型
+  // graph 类型已移除以简化
 };
 
 
 const getChartData = async (res) => {
     console.log('Graph: getChartData - Received raw response for type:', currentDataType.value, res);
     allData.value = res; // 存储完整响应
-    // 如果响应中包含type数组，则用于更新下拉列表，否则使用预定义的
-    if (!res.type && choiceType.value) { // 如果获取的数据不是包含type的主数据文件
-        // allData.value.type = Object.entries(dataTypesConfig).map(([key, val]) => ({key, text: val.text}));
-    } else if (res.type) {
-         // 如果主数据文件（如graph.json）包含了type定义，则使用它
-         // 确保wp类型也在里面，或者动态添加
-        let hasWp = res.type.some(t => t.key === 'wp');
-        if(!hasWp) {
-            // 确保 'wp' 和 'wq' (如果存在于 dataTypesConfig) 都在选项中
-            const defaultTypes = Object.entries(dataTypesConfig)
-              .filter(([key]) => key === 'wp' || key === 'wq') // 只添加 'wp' 和 'wq'
-              .map(([key, val]) => ({ key, text: val.text }));
-            // 合并，并去重（基于key）
-            const combinedTypes = [...defaultTypes, ...res.type];
-            const uniqueTypes = Array.from(new Map(combinedTypes.map(item => [item.key, item])).values());
-            allData.value.type = uniqueTypes;
-        } else {
-            // 如果 res.type 已经包含了 'wp'，我们仍然需要确保 'wq' (如果它不在 res.type 中) 被添加
-            let hasWq = res.type.some(t => t.key === 'wq');
-            if (!hasWq && dataTypesConfig.wq) {
-                 allData.value.type = [...res.type, {key: 'wq', text: dataTypesConfig.wq.text}];
-            } else {
-                 allData.value.type = res.type; // 如果两者都存在或wq不存在于config，则直接使用
-            }
-        }
-    } else { // 初始加载或wp.json/wq.json加载时，手动构建type
-        allData.value.type = Object.entries(dataTypesConfig)
-            .filter(([key]) => key === 'wp' || key === 'wq' || key === 'graph') // 恢复包含graph
-            .map(([key, val]) => ({key, text: val.text}));
-    }
+
+    // 为下拉菜单生成选项，只包含 wp 和 wq
+    allData.value.type = Object.entries(dataTypesConfig)
+        .map(([key, val]) => ({ key, text: val.text }));
 
     console.log('Graph: getChartData - allData.value after assignment:', JSON.stringify(allData.value));
     handleChartData();
@@ -86,32 +54,16 @@ const handleChartData = () => {
     console.log('Graph: handleChartData - currentDataType:', currentDataType.value, '- allData.value at entry:', JSON.stringify(allData.value));
     if ((currentDataType.value === 'wp' || currentDataType.value === 'wq') && allData.value && allData.value.time_series) {
         const times = allData.value.time_series.map(item => item.time);
-        // "wq" 数据结构与 "wp" 相同，字段名也为 "power"
         const values = allData.value.time_series.map(item => item.power);
-        const seriesName = dataTypesConfig[currentDataType.value]?.seriesName || '数据';
+        const seriesName = dataTypesConfig[currentDataType.value].seriesName; // key guaranteed to exist
         chartData.value = [
             ['仿真时间', ...times],
             [seriesName, ...values]
         ];
-        console.log(`Graph: Processed ${currentDataType.value}.json data`);
-    } else if (currentDataType.value === 'graph' && allData.value && allData.value.common && allData.value.map) { // 假设'graph'对应旧的地区销量结构
-        // 保留处理原 trend.json (现在是 graph.json) 结构的数据
-        // 注意：这里的 allData.value[choiceType.value] 可能需要调整，因为 choiceType.value 现在是 'graph'
-        // 假设 graph.json 的数据直接在 allData.value.map.data (或其他类似路径)
-        const baseData = allData.value.map; // 或者更具体的路径，取决于graph.json的实际结构
-        if (baseData && baseData.data) {
-            chartData.value = [
-                ['月份', ...allData.value.common.month],
-                ...baseData.data.map(series => [series.name, ...series.data])
-            ];
-            console.log('Graph: Processed graph.json (original trend) data');
-        } else {
-            console.warn('Graph: handleChartData - graph.json structure not as expected under allData.value.map.data');
-            chartData.value = [];
-        }
+        console.log(`Graph: Processed ${currentDataType.value} data`);
     } else {
-        console.warn('Graph: handleChartData - Data structure not recognized or currentDataType mismatch', currentDataType.value, allData.value);
-        chartData.value = [];
+        console.warn('Graph: handleChartData - Data structure not recognized or currentDataType mismatch for wp/wq', currentDataType.value, allData.value);
+        chartData.value = []; // Clear chart data if not wp/wq or structure is wrong
     }
     console.log('Graph: handleChartData - chartData.value after processing:', JSON.stringify(chartData.value));
 }
@@ -119,32 +71,16 @@ const handleChartData = () => {
 // echarts配置
 const updataChart = () => {
     // 根据 currentDataType 更新 seriesConfig 和 yAxisName
-    if (currentDataType.value === 'wp' || currentDataType.value === 'wq') {
-        yAxisName.value = dataTypesConfig[currentDataType.value]?.yAxisName || 'Y轴';
-        seriesConfig.value = [{ name: dataTypesConfig[currentDataType.value]?.seriesName || '数据', type: 'line', seriesLayoutBy: 'row', areaStyle: { opacity: 0.1 } }];
-    } else if (currentDataType.value === 'graph') {
-        yAxisName.value = dataTypesConfig.graph?.yAxisName || 'Y轴';
-        // 为 graph.json (原 trend.json) 构建多系列配置
-        // 假设 chartData 已经包含了正确的系列名称在每行的第一个元素 (除了表头)
-        if (chartData.value.length > 1) {
-            seriesConfig.value = chartData.value.slice(1).map((_, index) => ({
-                type: 'line',
-                seriesLayoutBy: 'row',
-                stack: 'totalAmount', // 之前的 stack: 'stack1'
-                areaStyle: { opacity: 0.1 }
-                // name 会由 dataset 自动映射
-            }));
-        } else {
-            seriesConfig.value = [];
-        }
-    }
+    // graph 类型已移除，只处理 wp 和 wq
+    yAxisName.value = dataTypesConfig[currentDataType.value].yAxisName;
+    seriesConfig.value = [{ name: dataTypesConfig[currentDataType.value].seriesName, type: 'line', seriesLayoutBy: 'row', areaStyle: { opacity: 0.1 } }];
 
     const option = {
         backgroundColor: 'transparent',
         xAxis: {
             type: 'category',
             boundaryGap: false,
-            // name: currentDataType.value === 'wp' ? '仿真时间 (seconds)' : '月份', // X轴名称也可以动态
+            name: '仿真时间 (seconds)', // 固定为时间序列的X轴名称
             nameLocation: 'middle',
             nameGap: 25,
             axisLabel: { // X轴刻度标签格式化，仅当数据为数字时
@@ -180,9 +116,10 @@ const updataChart = () => {
         tooltip: {
             trigger: 'axis', // 对于折线图，通常用 'axis'
             formatter: function (params) {
-                if ((currentDataType.value === 'wp' || currentDataType.value === 'wq') && params.length > 0) {
-                    const param = params[0]; // 单系列数据
-                    const timeVal = param.axisValueLabel || param.name; // X轴的值
+                // 只处理单系列 (wp/wq)
+                if (params.length > 0) {
+                    const param = params[0];
+                    const timeVal = param.axisValueLabel || param.name;
                     let val = null;
                     if (Array.isArray(param.value) && param.value.length > 1) {
                         val = param.value[1];
@@ -191,42 +128,12 @@ const updataChart = () => {
                     }
 
                     if (val !== undefined && val !== null) {
-                        const unit = currentDataType.value === 'wp' ? 'kW' : 'kVar'; // 根据类型选择单位
+                        const config = dataTypesConfig[currentDataType.value];
+                        // 从 yAxisName (例如 "功率 (watts)") 中提取单位
+                        const unit = config.yAxisName.includes('(') ? config.yAxisName.match(/\(([^)]+)\)/)[1] : '';
                         return `${param.seriesName}<br/>${timeVal}: ${parseFloat(val).toFixed(3)} ${unit}`;
                     }
                     return `${param.seriesName}<br/>${timeVal}: N/A`;
-                } else if (params.length > 0) { // 处理其他多系列数据，例如 graph.json
-                    let res = params[0].name; // X轴标签
-                    params.forEach(item => {
-                        // 尝试从 item.value 获取，假设 item.value 是 [x, y1, y2, ...] 结构中的一部分
-                        // 或者从 item.data 获取，这取决于 ECharts 如何传递数据
-                        let value;
-                        if (Array.isArray(item.value)) {
-                             // 对于多系列，dataset.source 的结构可能是 ['月份', '北京', '上海'] , [Jan, 100, 200]
-                             // item.seriesIndex 对应 '北京' (0), '上海' (1) 等系列
-                             // item.value 通常是 [xValue, yValueForThisSeries] 或者 [xValue, yValue1, yValue2, ...]
-                             // 如果 seriesLayoutBy: 'row', 且 source 的第一行是维度名，第二行开始是系列名和数据
-                             // 那么 item.value 应该是 [xAxisValue, seriesValue]
-                             // 如果 seriesLayoutBy: 'column', 则结构不同
-                             // 假设 seriesLayoutBy: 'row' 且数据格式为 ['月份', '系列1', '系列2'], [Jan, val1, val2]
-                             // params[i].value 将是 [Jan, val_i]
-                             // 因此，我们直接取 value[1]
-                            value = item.value[1];
-                        } else if (item.data && Array.isArray(item.data) && item.data.length > item.seriesIndex + 1) {
-                            // 这是一个更通用的回退，如果 item.value 不是预期的数组
-                            // 并且 item.data 是一个数组，其中包含了当前系列的数据
-                            value = item.data[item.seriesIndex + 1]; // 假设数据在 item.data 中按系列索引排列
-                        } else if (typeof item.value === 'number') {
-                            value = item.value; // 如果直接是数值
-                        }
-
-                        if (value !== undefined && value !== null) {
-                           res += `<br/>${item.seriesName}: ${parseFloat(value).toFixed(2)}`; // 其他数据保留两位小数
-                        } else {
-                           res += `<br/>${item.seriesName}: N/A`;
-                        }
-                    });
-                    return res;
                 }
                 return '';
             }
@@ -261,7 +168,8 @@ const handleChangeType = (record) => {
     currentDataType.value = record.key; // 更新当前数据类型
     graphTitle.value = record.text;
 
-    let targetChartName = dataTypesConfig[record.key]?.chartName || 'graph/graph'; // 从配置获取chartName
+    // record.key 只会是 'wp' 或 'wq'，它们必然存在于 dataTypesConfig 中
+    let targetChartName = dataTypesConfig[record.key].chartName;
 
     console.log(`Graph: handleChangeType - choiceType: ${choiceType.value}, determined chartName: ${targetChartName}`);
     socket.send({
@@ -295,7 +203,8 @@ onMounted(() => {
     socket.send({
         action: 'getData',
         socketType: 'graphData',
-        chartName: dataTypesConfig[choiceType.value]?.chartName || 'graph/wp', // 初始加载时使用 choiceType 的配置
+        // choiceType.value 初始为 'wp'，必然存在于 dataTypesConfig
+        chartName: dataTypesConfig[choiceType.value].chartName,
         value: ''
     })
     screenAdapter()
