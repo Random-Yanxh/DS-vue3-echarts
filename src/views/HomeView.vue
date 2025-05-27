@@ -125,10 +125,10 @@ const scrollToPage = (pageIndex) => {
     </section>
     <section id="page2" class="page-section">
       <div class="page2-grid-layout">
-        <ProjectInfoCard />
-        <KeyPerformanceIndicators />
-        <BatteryDetailedStatus />
-        <EconomicBenefitAnalysis />
+        <ProjectInfoCard style="grid-area: projInfo;" />
+        <KeyPerformanceIndicators style="grid-area: kpi;" />
+        <BatteryDetailedStatus style="grid-area: battery;" />
+        <EconomicBenefitAnalysis style="grid-area: econ;" />
       </div>
     </section>
   </div>
@@ -210,15 +210,31 @@ const scrollToPage = (pageIndex) => {
 
 .page2-grid-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive grid */
-  gap: 20px;
-  width: 90%; /* Adjust width as needed */
-  max-width: 1200px; /* Max width for larger screens */
-  padding: 20px;
-  background-color: rgba(0,0,0,0.1); /* Optional: slight background for the grid area */
-  border-radius: 10px;
+  width: 95%; /* Slightly smaller than the #page2 content area to create outer margins */
+  height: 95%; /* Slightly smaller than the #page2 content area */
+  grid-template-columns: repeat(2, calc(50% - 10px)); /* Two columns with a gap, relative to this new smaller container */
+  grid-template-rows: repeat(2, calc(50% - 10px));    /* Two rows with a gap, relative to this new smaller container */
+  grid-template-areas:
+    "projInfo battery"
+    "kpi      econ";
+  gap: 20px; /* Uniform spacing between modules */
+  /* justify-content: space-between; /* Removed as calc should handle precise sizing within the new container size */
+  /* align-content: space-between;   /* Removed for the same reason */
+  /* background-color: rgba(10, 25, 47, 0.3); /* Optional: subtle background for the grid area itself */
+  border-radius: 10px; /* Match styling of other component containers if desired */
+  box-sizing: border-box;
 }
 
+.page2-grid-layout > * { /* Style for direct children (the components) */
+  width: 100%; /* Components should fill their assigned grid area */
+  height: 100%;
+  overflow: hidden; /* Prevent content within components from overflowing the component box */
+  border-radius: 10px; /* Consistent rounded corners for each module */
+  /* background-color: rgba(20, 35, 57, 0.7); /* Example background for individual modules, adjust as needed */
+  /* padding: 15px; /* Add padding inside each module if needed, or let components handle it */
+  box-sizing: border-box;
+  /* display: flex; flex-direction: column; /* Remove if components manage their own layout */
+}
 
 .header {
   grid-area: header;

@@ -119,7 +119,20 @@ const updataChart = () => {
                 // 只处理单系列 (wp/wq)
                 if (params.length > 0) {
                     const param = params[0];
-                    const timeVal = param.axisValueLabel || param.name;
+                    const timeValRaw = param.axisValueLabel || param.name; // 原始X轴值
+                    let timeValFormatted = timeValRaw; // 格式化后的X轴值
+
+                    // 尝试将timeValRaw格式化为三位小数的数字字符串
+                    if (typeof timeValRaw === 'number') {
+                        timeValFormatted = timeValRaw.toFixed(3);
+                    } else if (typeof timeValRaw === 'string') {
+                        const parsedNum = parseFloat(timeValRaw);
+                        if (!isNaN(parsedNum)) {
+                            timeValFormatted = parsedNum.toFixed(3);
+                        }
+                        // 如果不能解析为数字，则保持原样 (timeValFormatted 初始值就是 timeValRaw)
+                    }
+
                     let val = null;
                     if (Array.isArray(param.value) && param.value.length > 1) {
                         val = param.value[1];
@@ -131,9 +144,9 @@ const updataChart = () => {
                         const config = dataTypesConfig[currentDataType.value];
                         // 从 yAxisName (例如 "功率 (watts)") 中提取单位
                         const unit = config.yAxisName.includes('(') ? config.yAxisName.match(/\(([^)]+)\)/)[1] : '';
-                        return `${param.seriesName}<br/>${timeVal}: ${parseFloat(val).toFixed(3)} ${unit}`;
+                        return `${param.seriesName}<br/>${timeValFormatted}: ${parseFloat(val).toFixed(3)} ${unit}`;
                     }
-                    return `${param.seriesName}<br/>${timeVal}: N/A`;
+                    return `${param.seriesName}<br/>${timeValFormatted}: N/A`;
                 }
                 return '';
             }
