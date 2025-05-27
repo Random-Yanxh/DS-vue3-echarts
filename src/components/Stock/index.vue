@@ -1,4 +1,4 @@
-<script setup>
+<script setup>//AI聊天框
 import { ref } from 'vue';
 
 const messages = ref([]);

@@ -116,10 +116,10 @@ onMounted(() => {
     font-size: clamp(12px, 2.5vw, 15px); /* 单元格字体响应式 */
     white-space: nowrap; /* 防止文本换行导致列宽问题，如果需要换行则移除 */
 }
-.data-table td:first-child {
+
      /* white-space: normal; /* 允许指标名称换行 */
      /* word-break: break-all; /* 如果名称过长，则强制换行 */
-}
+
 
 
 .data-table th {
