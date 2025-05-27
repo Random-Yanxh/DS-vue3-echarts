@@ -1,33 +1,33 @@
 <script setup>
 import { reactive, ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
-import Hot from '@/components/Hot/index.vue'
-import Map from '@/components/Map/index.vue'
-import Rank from '@/components/Rank/index.vue'
-import Seller from '@/components/Seller/index.vue'
-import Stock from '@/components/Stock/index.vue'
-import Trend from '@/components/Trend/index.vue'
+import EPie from '@/components/EPie/index.vue'
+import Gridmap from '@/components/Gridmap/index.vue'
+import Control from '@/components/Control/index.vue'
+import Indicators from '@/components/Indicators/index.vue'
+import Aichat from '@/components/Aichat/index.vue'
+import Graph from '@/components/Graph/index.vue'
 
 // 导入新的四个组件
-import ProjectInfoCard from '../components/ProjectInfoCard.vue'
-import KeyPerformanceIndicators from '../components/KeyPerformanceIndicators.vue'
-import BatteryDetailedStatus from '../components/BatteryDetailedStatus.vue'
-import EconomicBenefitAnalysis from '../components/EconomicBenefitAnalysis.vue'
+import ProjectInfoCard from '../components/ProjectInfoCard/index.vue'
+import KeyPerformanceIndicators from '../components/KeyPerformanceIndicators/index.vue'
+import BatteryDetailedStatus from '../components/BatteryDetailedStatus/index.vue'
+import EconomicBenefitAnalysis from '../components/EconomicBenefitAnalysis/index.vue'
 
 
 const fullScreenStatus = reactive({
-  trend: false,
-  seller: false,
-  map: false,
-  rank: false,
-  hot: false,
-  stock: false,
+  graph: false,
+  indicators: false,
+  gridmap: false,
+  control: false,
+  epie: false,
+  aichat: false,
 })
-const trend = ref(null)
-const map = ref(null)
-const hot = ref(null)
-const seller = ref(null)
-const stock = ref(null)
-const rank = ref(null)
+const graph = ref(null)
+const gridmap = ref(null)
+const epie = ref(null)
+const indicators = ref(null)
+const aichat = ref(null)
+const control = ref(null)
 
 const changeSize = async (value) => {
   fullScreenStatus[value] = !fullScreenStatus[value]
@@ -91,35 +91,35 @@ const scrollToPage = (pageIndex) => {
     <section id="page1" class="page-section">
       <div class="original-layout-wrapper">
         <div class="header">绿氢微电网平台实时仿真监控系统</div>
-        <div class="trend" :class="fullScreenStatus.trend ? 'fullscreen' : ''">
-          <Trend ref="trend"></Trend>
-          <span @click="changeSize('trend')" class="iconfont enlargement"
-            :class="fullScreenStatus.trend ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
+        <div class="graph" :class="fullScreenStatus.graph ? 'fullscreen' : ''">
+          <Graph ref="graph"></Graph>
+          <span @click="changeSize('graph')" class="iconfont enlargement"
+            :class="fullScreenStatus.graph ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
         </div>
-        <div class="map" :class="fullScreenStatus.map ? 'fullscreen' : ''">
-          <Map ref="map"></Map>
-          <span @click="changeSize('map')" class="iconfont enlargement"
-            :class="fullScreenStatus.map ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
+        <div class="gridmap" :class="fullScreenStatus.gridmap ? 'fullscreen' : ''">
+          <Gridmap ref="gridmap"></Gridmap>
+          <span @click="changeSize('gridmap')" class="iconfont enlargement"
+            :class="fullScreenStatus.gridmap ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
         </div>
-        <div class="hot" :class="fullScreenStatus.hot ? 'fullscreen' : ''">
-          <Hot ref="hot"></Hot>
-          <span @click="changeSize('hot')" class="iconfont enlargement"
-            :class="fullScreenStatus.hot ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
+        <div class="epie" :class="fullScreenStatus.epie ? 'fullscreen' : ''">
+          <EPie ref="epie"></EPie>
+          <span @click="changeSize('epie')" class="iconfont enlargement"
+            :class="fullScreenStatus.epie ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
         </div>
-        <div class="seller" :class="fullScreenStatus.seller ? 'fullscreen' : ''">
-          <Seller ref="seller"></Seller>
-          <span @click="changeSize('seller')" class="iconfont enlargement"
-            :class="fullScreenStatus.seller ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
+        <div class="indicators" :class="fullScreenStatus.indicators ? 'fullscreen' : ''">
+          <Indicators ref="indicators"></Indicators>
+          <span @click="changeSize('indicators')" class="iconfont enlargement"
+            :class="fullScreenStatus.indicators ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
         </div>
-        <div class="rank" :class="fullScreenStatus.rank ? 'fullscreen' : ''">
-          <Rank ref="rank"></Rank>
-          <span @click="changeSize('rank')" class="iconfont enlargement"
-            :class="fullScreenStatus.rank ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
+        <div class="control_container" :class="fullScreenStatus.control ? 'fullscreen' : ''">
+          <Control ref="control"></Control>
+          <span @click="changeSize('control')" class="iconfont enlargement"
+            :class="fullScreenStatus.control ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
         </div>
-        <div class="stock" :class="fullScreenStatus.stock ? 'fullscreen' : ''">
-          <Stock ref="stock"></Stock>
-          <span @click="changeSize('stock')" class="iconfont enlargement"
-            :class="fullScreenStatus.stock ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
+        <div class="aichat" :class="fullScreenStatus.aichat ? 'fullscreen' : ''">
+          <Aichat ref="aichat"></Aichat>
+          <span @click="changeSize('aichat')" class="iconfont enlargement"
+            :class="fullScreenStatus.aichat ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
         </div>
       </div>
     </section>
@@ -195,9 +195,9 @@ const scrollToPage = (pageIndex) => {
   align-content: space-around;
   grid-template-areas:
     "header header header"
-    "trend   map    hot"
-    "seller  map   stock"
-    "seller  rank  stock"
+    "graph   gridmap    epie"
+    "indicators  gridmap   aichat"
+    "indicators  control  aichat"
   ;
   box-sizing: border-box; /* Ensure padding doesn't break layout */
 }
@@ -229,28 +229,28 @@ const scrollToPage = (pageIndex) => {
   line-height: 80px; /* Adjusted to match original if it was based on percentage */
 }
 
-.trend {
-  grid-area: trend;
+.graph {
+  grid-area: graph;
 }
 
-.map {
-  grid-area: map;
+.gridmap {
+  grid-area: gridmap;
 }
 
-.hot {
-  grid-area: hot;
+.epie {
+  grid-area: epie;
 }
 
-.seller {
-  grid-area: seller;
+.indicators {
+  grid-area: indicators;
 }
 
-.rank {
-  grid-area: rank;
+.control_container {
+  grid-area: control;
 }
 
-.stock {
-  grid-area: stock;
+.aichat {
+  grid-area: aichat;
 }
 
 .enlargement {

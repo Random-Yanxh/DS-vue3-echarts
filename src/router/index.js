@@ -18,14 +18,14 @@ const router = createRouter({
     // component: () => import('../views/AboutView.vue')
     // },
     {
-      path: '/seller',
-      name: 'seller',
-      component: () => import('../views/SellerView/index.vue')
+      path: '/indicators',
+      name: 'indicators',
+      component: () => import('../views/IndicatorsView/index.vue')
     },
     {
-      path: '/trend',
-      name: 'trend',
-      component: () => import('../views/TrendView/index.vue')
+      path: '/graph',
+      name: 'graph',
+      component: () => import('../views/GraphView/index.vue')
     },
     {
       path: '/map',
@@ -33,19 +33,19 @@ const router = createRouter({
       component: () => import('../views/MapView/index.vue')
     },
     {
-      path: '/rank',
-      name: 'rank',
-      component: () => import('../views/RankView/index.vue')
+      path: '/control',
+      name: 'control',
+      component: () => import('../views/ControlView/index.vue')
     },
     {
-      path: '/hot',
-      name: 'hot',
-      component: () => import('../views/HotView/index.vue')
+      path: '/epie',
+      name: 'epie',
+      component: () => import('../views/EPieView/index.vue')
     },
     {
-      path: '/stock',
-      name: 'stock',
-      component: () => import('../views/StockView/index.vue')
+      path: '/aichat',
+      name: 'aichat',
+      component: () => import('../views/AichatView/index.vue')
     },
   ]
 })

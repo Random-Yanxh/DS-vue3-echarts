@@ -1,7 +1,7 @@
 <script setup>
-import Map from '@/components/Map/index.vue'
+import Gridmap from '@/components/Gridmap/index.vue'
 </script>
 
 <template>
-    <Map></Map>
+    <Gridmap></Gridmap>
 </template>
