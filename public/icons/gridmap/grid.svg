@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+	 viewBox="0 0 512.001 512.001" xml:space="preserve">
+<g>
+	<rect x="143.998" y="391.925" style="fill:white;" width="48" height="64"/>
+	<rect x="320.001" y="391.925" style="fill:white;" width="48" height="64"/>
+</g>
+<rect y="455.925" style="fill:white;" width="512.001" height="55.996"/>
+<g>
+	<rect x="48.001" y="72.081" style="fill:white;" width="16" height="15.694"/>
+	<rect x="48.001" y="96.082" style="fill:white;" width="16" height="15.694"/>
+	<rect x="48.001" y="176.08" style="fill:white;" width="16" height="15.694"/>
+	<rect x="48.001" y="200.081" style="fill:white;" width="16" height="15.694"/>
+	<rect x="448.001" y="72.081" style="fill:white;" width="16" height="15.694"/>
+	<rect x="448.001" y="96.082" style="fill:white;" width="16" height="15.694"/>
+	<rect x="448.001" y="176.08" style="fill:white;" width="16" height="15.694"/>
+	<rect x="448.001" y="200.081" style="fill:white;" width="16" height="15.694"/>
+</g>
+<g>
+	<path style="fill:white;" d="M375.847,448.081v-64h-24V231.774h87.999v-55.847h-15.694v40.153h-72.305v-88.306h87.999V71.927
+		h-15.694v40.153h-72.305v-112H160.153v112H87.848V71.927H72.154v55.847h87.999v88.306H87.848v-40.153H72.154v55.847h87.999V384.08
+		h-24v64H0v15.694h512V448.08H375.847V448.081z M360.153,448.081h-32.306v-48.306h32.306L360.153,448.081L360.153,448.081z
+		 M271.425,171.927l64.728-38.248v76.497L271.425,171.927z M315.296,216.08H196.704l59.296-35.038L315.296,216.08z M315.296,127.774
+		l-59.296,35.038l-59.296-35.038C196.703,127.774,315.296,127.774,315.296,127.774z M196.704,112.08l59.295-35.038l59.295,35.038
+		H196.704z M271.425,67.927l64.728-38.248v76.497L271.425,67.927z M256.001,58.812l-72.835-43.038h145.669L256.001,58.812z
+		 M240.575,67.927l-64.728,38.248V29.679L240.575,67.927z M240.575,171.927l-64.728,38.248v-76.497L240.575,171.927z
+		 M196.704,231.774h118.591l-59.296,35.038L196.704,231.774z M240.575,275.927l-64.728,38.248v-76.497L240.575,275.927z
+		 M336.153,237.679v76.497l-64.728-38.248L336.153,237.679z M175.847,332.406l80.152-47.363l80.152,47.363v51.675h-23.998v64
+		H199.847v-64h-23.999v-51.675H175.847z M151.848,399.775h32.306v48.306h-32.306V399.775z"/>
+	<rect x="32" y="480.083" style="fill:white;" width="48.001" height="15.694"/>
+	<rect x="160.006" y="480.083" style="fill:white;" width="119.996" height="15.694"/>
+	<rect x="295.999" y="496.081" style="fill:white;" width="48" height="15.694"/>
+	<rect x="359.999" y="480.083" style="fill:white;" width="55.996" height="15.694"/>
+	<rect x="432.004" y="480.083" style="fill:white;" width="16.001" height="15.694"/>
+</g>
+</svg>

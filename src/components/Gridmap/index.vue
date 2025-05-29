@@ -7,12 +7,14 @@ let chartInstance = null
 
 // 将 categories 定义移到这里，使其在 updataChart 和 updataChartData 中都可访问
 const categories = [
-    { name: '电网', itemStyle: { color: '#555' } }, // 对应 type 'grid'
-    { name: '交流母线', itemStyle: { color: '#1E90FF' } }, // 对应 type 'bus_ac'
-    { name: '光伏发电', itemStyle: { color: '#FFD700' } }, // 对应 type 'generation_pv'
-    { name: '电池储能', itemStyle: { color: '#FF9800' } }, // 对应 type 'storage_battery'
-    { name: '固定负荷', itemStyle: { color: '#8BC34A' } }, // 对应 type 'load_fixed'
-    // 可以根据需要添加更多类型，确保 name 与 node.type 的部分匹配逻辑一致或直接使用 node.type
+    { name: '电网', itemStyle: { color: '#4A90E2' } },          // type 'grid'
+    { name: '交流母线', itemStyle: { color: '#7ED321' } },    // type 'bus_ac'
+    { name: '光伏发电', itemStyle: { color: '#FFD700' } },    // type 'generation_pv'
+    { name: '风力发电', itemStyle: { color: '#50E3C2' } },    // type 'generation_wind' (新增)
+    { name: '电池储能', itemStyle: { color: '#FF9800' } },    // type 'storage_battery'
+    { name: '固定负荷', itemStyle: { color: '#F5A623' } },    // type 'load_fixed'
+    { name: '充电桩', itemStyle: { color: '#BD10E0' } },      // type 'charging_station' (新增)
+
 ];
 const initChart = () => {
     chartInstance = echarts.init(map_chart.value, 'chalk')
@@ -23,14 +25,7 @@ const initChart = () => {
 
 const updataChart = () => {
     const titleFontSize = map_chart.value.offsetWidth / 100 * 3.6;
-    const categories = [ // 定义节点类别，用于图例和样式
-        { name: '电网', itemStyle: { color: '#555' } },
-        { name: '交流母线', itemStyle: { color: '#1E90FF' } },
-        { name: '光伏发电', itemStyle: { color: '#FFD700' } },
-        { name: '电池储能', itemStyle: { color: '#FF9800' } },
-        { name: '固定负荷', itemStyle: { color: '#8BC34A' } },
-        // 可以根据需要添加更多类型
-    ];
+    // categories 常量已移至外部
     const option = {
         backgroundColor: 'transparent', // 添加此行
         title: {
@@ -45,28 +40,53 @@ const updataChart = () => {
             trigger: 'item',
             formatter: function (params) {
                 if (params.dataType === 'node') {
-                    let tooltipText = `<strong>${params.data.name}</strong> (类型: ${params.data.type})`;
-                    if (params.data.status) tooltipText += `<br/>状态: ${params.data.status}`;
-                    if (params.data.powerExchange !== undefined) tooltipText += `<br/>交换功率: ${params.data.powerExchange} kW`;
-                    if (params.data.currentPower !== undefined) tooltipText += `<br/>实时功率: ${params.data.currentPower} kW`;
-                    if (params.data.dailyEnergy !== undefined) tooltipText += `<br/>日发电量: ${params.data.dailyEnergy} kWh`;
-                    if (params.data.soc !== undefined) tooltipText += `<br/>SOC: ${params.data.soc}%`;
-                    if (params.data.power !== undefined && params.data.type === 'storage_battery') tooltipText += `<br/>充放功率: ${params.data.power} kW`;
-                    if (params.data.voltage !== undefined) tooltipText += `<br/>电压: ${params.data.voltage} V`;
+                    const data = params.data;
+                    let tooltipText = `<strong style="color: ${params.color};">${data.name}</strong>`;
+                    tooltipText += `<br/>类型: ${data.type_display || data.type}`; // 使用 type_display (后续添加)
+                    if (data.status) tooltipText += `<br/>状态: ${data.status}`;
+                    
+                    // 根据不同类型显示特定信息
+                    if (data.type === 'grid' && data.powerExchange !== undefined) {
+                        tooltipText += `<br/>交换功率: ${data.powerExchange} kW`;
+                    } else if (data.type === 'bus_ac' && data.voltage !== undefined) {
+                        tooltipText += `<br/>电压: ${data.voltage} V`;
+                    } else if ((data.type === 'generation_pv' || data.type === 'generation_wind') && data.currentPower !== undefined) {
+                        tooltipText += `<br/>实时功率: ${data.currentPower} kW`;
+                        if (data.dailyEnergy !== undefined) tooltipText += `<br/>日发电量: ${data.dailyEnergy} kWh`;
+                    } else if (data.type === 'storage_battery') {
+                        if (data.soc !== undefined) tooltipText += `<br/>SOC: ${data.soc}%`;
+                        if (data.power !== undefined) tooltipText += `<br/>充放功率: ${data.power} kW`;
+                    } else if (data.type === 'load_fixed' && data.currentPower !== undefined) {
+                        tooltipText += `<br/>负荷功率: ${data.currentPower} kW`;
+                    }
+                    // 可以添加更多通用属性的显示
+                    // if (data.voltage !== undefined && data.type !== 'bus_ac') tooltipText += `<br/>电压: ${data.voltage} V`;
+
                     return tooltipText;
                 } else if (params.dataType === 'edge') {
-                    return `<strong>${params.data.name || params.data.type}</strong><br/>功率流: ${params.data.powerFlow || 'N/A'} kW`;
+                    const data = params.data;
+                    let tooltipText = `<strong>${data.name || data.type}</strong>`;
+                    if (data.powerFlow !== undefined) {
+                        tooltipText += `<br/>功率流: ${data.powerFlow} kW`;
+                    }
+                    // 可以添加线路的其他信息，如电压等级等
+                    return tooltipText;
                 }
                 return params.name;
             }
         },
         legend: [{ // 添加图例配置
             data: categories.map(function (a) { return a.name; }),
-            bottom: 10,
-            itemWidth: titleFontSize * 0.8,
-            itemHeight: titleFontSize * 0.8,
+            bottom: 20,
+            left: 'center',
+            orient: 'horizontal',
+            itemWidth: titleFontSize * 0.7, // 调整大小
+            itemHeight: titleFontSize * 0.7, // 调整大小
+            icon: 'rect', // 可以根据喜好选择 'circle', 'roundRect', 'rect' 等
+            itemGap: 15,
+            selectedMode: 'multiple', // 允许通过图例筛选显示
             textStyle: {
-                fontSize: titleFontSize * 0.6,
+                fontSize: titleFontSize * 0.65, // 调整大小
                 color: '#fff'
             }
         }],
@@ -77,34 +97,62 @@ const updataChart = () => {
                 layout: 'none',
                 roam: true,
                 categories: categories, // 引入 categories
+                // 节点标签统一样式
                 label: {
                     show: true,
                     position: 'bottom',
-                    formatter: '{b}',
+                    formatter: function(params) {
+                        const data = params.data;
+                        let text = data.name;
+                        // 可以在此根据节点类型添加额外信息到标签，但tooltip中已有，保持标签简洁
+                        // if (data.type === 'bus_ac' && data.voltage) {
+                        //     text += `\n${data.voltage}V`;
+                        // } else if (data.type === 'generation_pv' && data.currentPower !== undefined) {
+                        //     text += `\n${data.currentPower}kW`;
+                        // }
+                        return text;
+                    },
                     color: '#fff', // 节点标签颜色
                     fontSize: titleFontSize * 0.5 // 节点标签字体大小
                 },
                 edgeLabel: { // 添加连接线标签配置
                     show: true,
                     formatter: function(params) { return params.data.name || ''; }, // 显示连接线的 name
-                    fontSize: titleFontSize * 0.4,
+                    // formatter: function(params) { // 更详细的连接线标签
+                    //     let text = params.data.name || '';
+                    //     if (params.data.powerFlow !== undefined) {
+                    //         text += `\n${params.data.powerFlow} kW`;
+                    //     }
+                    //     return text;
+                    // },
+                    fontSize: titleFontSize * 0.45, // 略微调大
                     color: '#ccc'
                 },
                 nodes: [], // 将由 updataChartData 填充
                 links: [], // 将由 updataChartData 填充
                 lineStyle: {
                     opacity: 0.9,
-                    width: 4,
-                    curveness: 0
+                    width: 4, // 默认主干线宽度，具体可在updataChartData中根据level调整
+                    curveness: 0 // 直线
                 },
                 // symbolSize 已在 JSON 中为每个节点分别定义，或此处设置一个统一的默认值
                 // symbolSize: 40, // 统一的默认节点大小，如果JSON中没有则采用此值
                 edgeSymbol: ['none', 'arrow'],
-                edgeSymbolSize: [4, 8],
+                edgeSymbolSize: [4, 8], // 可根据线条宽度调整
                 emphasis: { // 高亮状态
-                    focus: 'adjacency',
+                    focus: 'adjacency', // 高亮相邻节点和边
+                    scale: true, // 节点放大
                     lineStyle: {
-                        width: 6
+                        width: 6 // 高亮时连接线变粗
+                    },
+                    label: {
+                        fontSize: titleFontSize * 0.6 // 高亮时标签字体略大
+                    },
+                    itemStyle: { // 节点高亮样式
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                        shadowBlur: 5,
+                        shadowColor: 'rgba(255, 255, 255, 0.7)'
                     }
                 }
             }
@@ -112,43 +160,135 @@ const updataChart = () => {
     };
     chartInstance.setOption(option);
 }
+
+// 辅助函数：获取节点类型对应的显示名称
+const getNodeTypeDisplay = (type) => {
+    // const category = categories.find(cat => cat.name.toLowerCase().includes(type.replace(/_/g, '').toLowerCase()));
+    if (type === 'grid') return '公共电网';
+    if (type === 'bus_ac') return '交流母线';
+    if (type === 'generation_pv') return '光伏发电';
+    if (type === 'generation_wind') return '风力发电';
+    if (type === 'storage_battery') return '电池储能';
+    if (type === 'load_fixed') return '固定负荷';
+    if (type === 'charging_station') return '充电桩'; // 新增
+    return type; // 默认返回原始类型
+};
+
 const updataChartData = () => {
     console.log('Entering updataChartData. allData for topology:', JSON.stringify(allData.value)); // 诊断日志3
     if (allData.value && allData.value.nodes && allData.value.links) {
         console.log('Data for ECharts topology - nodes:', JSON.stringify(allData.value.nodes)); // 诊断日志4
         console.log('Data for ECharts topology - links:', JSON.stringify(allData.value.links)); // 诊断日志5
+        
+        const baseSymbolSize = map_chart.value ? map_chart.value.offsetWidth / 100 * 2.2 : 40; // 响应式基础节点大小
+
         const option = {
             series: [{
                 // name: '微电网拓扑', // series的name已在updataChart中定义
                 // type: 'graph', // type也已在updataChart中定义
                 // layout: 'none', // layout也已在updataChart中定义
                 nodes: allData.value.nodes.map(node => {
-                    // 将节点类型映射到 category 索引
                     let categoryIndex = -1;
                     const nodeTypeLower = node.type ? node.type.toLowerCase() : '';
+                    let symbolPath = node.symbol; // 默认使用数据中的symbol
+                    let finalSymbolSize = node.symbolSize || baseSymbolSize; // 默认基础大小
+                    let itemStyleOverwrite = {}; // 用于覆盖或添加itemStyle属性
 
-                    if (nodeTypeLower === 'grid') categoryIndex = 0;
-                    else if (nodeTypeLower === 'bus_ac') categoryIndex = 1;
-                    else if (nodeTypeLower === 'generation_pv') categoryIndex = 2;
-                    else if (nodeTypeLower === 'storage_battery') categoryIndex = 3;
-                    else if (nodeTypeLower === 'load_fixed') categoryIndex = 4;
-                    // 对于其他未明确列出的类型，可以尝试更通用的匹配
-                    else {
-                       categoryIndex = categories.findIndex(cat => nodeTypeLower.includes(cat.name.toLowerCase().replace(/\s+/g, '_')));
-                       if (categoryIndex === -1) categoryIndex = 0; // 默认分配到第一个类别或一个“其他”类别
-                    }
+                    // 根据类型分配 categoryIndex 和 symbol
+                    if (nodeTypeLower === 'grid') {
+                        categoryIndex = 0; // 电网
+                        symbolPath = 'image:///icons/gridmap/grid.svg';
+                        finalSymbolSize = baseSymbolSize * 1.6; // 电网节点稍大
+                    } else if (nodeTypeLower === 'bus_ac') {
+                        categoryIndex = 1; // 交流母线
+                        symbolPath = 'rect';
+                        finalSymbolSize = [baseSymbolSize * 3, baseSymbolSize * 0.6]; // 母线长条形
+                    } else if (nodeTypeLower === 'generation_pv') {
+                        categoryIndex = 2; // 光伏发电
+                        symbolPath = 'image:///icons/gridmap/pv.svg';
+                        finalSymbolSize = baseSymbolSize * 1.3;
+                    } else if (nodeTypeLower === 'generation_wind') {
+                        categoryIndex = 3; // 风力发电
+                        symbolPath = 'image:///icons/gridmap/windpower.svg';
+                        finalSymbolSize = baseSymbolSize * 1.4;
+                    } else if (nodeTypeLower === 'storage_battery') {
+                        categoryIndex = 4; // 电池储能 (索引已更新)
+                        symbolPath = 'image:///icons/gridmap/battery.svg';
+                        finalSymbolSize = baseSymbolSize * 1.3;
+                    } else if (nodeTypeLower === 'load_fixed') {
+                        categoryIndex = 5; // 固定负荷
+                        symbolPath = 'image:///icons/gridmap/load.svg';
+                        finalSymbolSize = baseSymbolSize * 1.2;
+                    } else if(nodeTypeLower === 'charging_station') {
+                        categoryIndex = 6; // 充电桩 (新增)
+                        symbolPath = 'image:///icons/gridmap/charging_station.svg';
+                        finalSymbolSize = baseSymbolSize * 1.2
+                    } 
                     
+                    // 根据节点状态调整样式 (示例)
+                    // 假设 node.status: 'ok', 'warning', 'offline', 'fault'
+                    if (node.status === 'offline' || node.status === 'fault') {
+                        itemStyleOverwrite.borderColor = 'red';
+                        itemStyleOverwrite.borderWidth = 2;
+                        // itemStyleOverwrite.color = '#777'; // 可以让节点变灰暗
+                        itemStyleOverwrite.opacity = 0.6;
+                    } else if (node.status === 'warning') {
+                        itemStyleOverwrite.borderColor = 'orange';
+                        itemStyleOverwrite.borderWidth = 2;
+                    }
+
                     return {
                         ...node,
                         category: categoryIndex,
-                        symbolSize: node.symbolSize || 40,
-                        itemStyle: node.itemStyle || (categories[categoryIndex] ? categories[categoryIndex].itemStyle : undefined)
+                        symbol: symbolPath,
+                        symbolSize: finalSymbolSize,
+                        itemStyle: {
+                            ...(categories[categoryIndex] ? categories[categoryIndex].itemStyle : {}), // 应用类别颜色
+                            ...(node.itemStyle || {}), // 应用数据中定义的节点特定样式
+                            ...itemStyleOverwrite // 应用状态相关的样式覆盖
+                        },
+                        type_display: getNodeTypeDisplay(node.type) // 添加友好类型名称
                     };
                 }),
                 links: allData.value.links.map(link => {
+                    let defaultLinkStyle = {
+                        color: '#a0a0a0', // 默认分支连接线颜色
+                        width: 2,      // 默认分支连接线宽度
+                        opacity: 0.7
+                    };
+
+                    // 根据 link.level 或其他属性区分主次干线 (假设数据中有 link.level: 'primary' | 'secondary')
+                    if (link.level === 'primary') {
+                        defaultLinkStyle.width = 4;
+                        defaultLinkStyle.color = '#66b3ff'; // 主干线颜色
+                        defaultLinkStyle.opacity = 0.9;
+                    } else if (link.level === 'secondary') {
+                         defaultLinkStyle.width = 2;
+                         defaultLinkStyle.color = '#88ddaa'; // 次级干线颜色示例
+                         defaultLinkStyle.opacity = 0.8;
+                    }
+                    // 如果数据中link本身定义了lineStyle，则会覆盖这里的默认值
+                    const finalLinkStyle = { ...defaultLinkStyle, ...link.lineStyle };
+
+
+                    let effectOptions = { show: false };
+                    // 为功率流较大的线路或特定类型的线路添加特效
+                    if (Math.abs(link.powerFlow || 0) > 50 || link.level === 'primary') {
+                        effectOptions = {
+                            show: true,
+                            period: 6, // 动画周期，越小越快
+                            trailLength: 0.5, // 轨迹长度 0-1
+                            color: finalLinkStyle.color || '#fff', // 特效颜色跟随线条或为白色
+                            symbolSize: Math.max(2, finalLinkStyle.width / 2), // 特效大小与线条粗细关联
+                            symbol: 'arrow',
+                            loop: true
+                        };
+                    }
+
                     return {
                         ...link,
-                        lineStyle: link.lineStyle || { color: '#aaa', width: 2 }
+                        lineStyle: finalLinkStyle,
+                        effect: effectOptions
                     };
                 })
             }]
