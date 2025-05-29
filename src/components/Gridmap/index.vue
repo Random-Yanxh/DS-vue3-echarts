@@ -113,7 +113,7 @@ const updataChart = () => {
                         return text;
                     },
                     color: '#fff', // 节点标签颜色
-                    fontSize: titleFontSize * 0.5 // 节点标签字体大小
+                    fontSize: titleFontSize * 0.6 // 节点标签字体大小
                 },
                 edgeLabel: { // 添加连接线标签配置
                     show: true,
@@ -125,7 +125,7 @@ const updataChart = () => {
                     //     }
                     //     return text;
                     // },
-                    fontSize: titleFontSize * 0.45, // 略微调大
+                    fontSize: titleFontSize * 0.5, // 略微调大
                     color: '#ccc'
                 },
                 nodes: [], // 将由 updataChartData 填充
@@ -146,7 +146,7 @@ const updataChart = () => {
                         width: 6 // 高亮时连接线变粗
                     },
                     label: {
-                        fontSize: titleFontSize * 0.6 // 高亮时标签字体略大
+                        fontSize: titleFontSize * 0.7 // 高亮时标签字体略大
                     },
                     itemStyle: { // 节点高亮样式
                         borderColor: '#fff',

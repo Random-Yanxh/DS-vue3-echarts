@@ -51,24 +51,37 @@ const updataChart = () => {
             icon: 'circle',
         },
         tooltip: {
-            formatter: (arg) => {
-                // return arg.data.children.map(i => `${i.name}：${i.value}`).join('<br/>')  //两者皆可
-                return arg.data.children.map(i => `<p>${i.name}：${i.value}</p>`).join('')
-            }
+            show: false // 禁用 Tooltip
         },
         series: {
             name: `${currentData.value.name}`,
             type: 'pie',
             label: {
-                show: false
+                show: true, // 标签常显
+                formatter: '{b}:\n{d}%', // 名称和百分比换行显示
+                position: 'outside', // 将标签放在外部
+                color: '#fff',       // 字体颜色设为白色
+                // fontSize: 12,     // 可以设置一个固定值，或在screenAdapter中动态调整
+                textBorderColor: 'transparent', // 去除描边
+                textBorderWidth: 0,
+                overflow: 'truncate', // 内容过长时截断，可根据需要设为 'break' 或 'none'
+                ellipsis: '...'       // 截断时显示的后缀
             },
-            radius: 140,
+            labelLine: {
+                show: true,
+                length: 6,    // 配合饼图缩小，略微缩短引导线
+                length2: 10,  // 配合饼图缩小，略微缩短引导线
+                smooth: 0.5   // 平滑曲线 0-1
+            },
+            radius: '55%', // 改为实心饼图，并缩小尺寸
             emphasis: {
                 label: {
-                    show: true
+                    show: true, // 高亮时也显示标签
+                    fontSize: 14, // 高亮时标签字体可以稍大
+                    fontWeight: 'bold'
                 },
                 labelLine: {
-                    show: false
+                    show: true // 高亮时也显示引导线
                 }
             }
         }
@@ -125,7 +138,15 @@ const screenAdapter = () => {
             textStyle: {
                 fontSize: titleFontSize / 1.5
             }
-        }
+        },
+        series: [{ // 确保在series数组中，如果只有一个series
+            label: {
+                fontSize: titleFontSize / 1.3 // 动态调整标签字体大小
+            },
+            labelLine: {
+                // 如果需要，也可以在这里动态调整引导线长度
+            }
+        }]
     }
     chartInstance.setOption(adapterOption)
     chartInstance.resize()
@@ -169,7 +190,7 @@ background-color: rgba(10, 25, 47, 0.75);
 .arr_left,
 .arr_right {
     position: absolute;
-    top: 50%;
+    top: 75%;
     transform: translateY(-50%);
     color: white;
     cursor: pointer;

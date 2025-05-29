@@ -6,7 +6,7 @@
       "type": "grid",
       "status": "connected",
       "powerExchange": 500,
-      "x": 120, 
+      "x": 50, 
       "y": 300,
       "symbol": "rect",
       "symbolSize": [60, 40],
@@ -19,10 +19,10 @@
       "name": "交流母线 A",
       "type": "bus_ac",
       "voltage": 220,
-      "x": 200,
+      "x": 350, 
       "y": 300,
       "symbol": "rect",
-      "symbolSize": [100, 20],
+      "symbolSize": [1500, 25], 
       "itemStyle": {
         "color": "#1E90FF"
       }
@@ -34,8 +34,8 @@
       "status": "generating",
       "currentPower": 150,
       "dailyEnergy": 750,
-      "x": 280, 
-      "y": 240,
+      "x": 350, 
+      "y": 180,
       "symbol": "image://scr/icons8-太阳能板-60.png",
       "symbolSize": 45
     },
@@ -46,8 +46,8 @@
       "status": "charging",
       "soc": 60,
       "power": -50,
-      "x": 280, 
-      "y": 360,
+      "x": 550, 
+      "y": 220,
       "symbol": "image://data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB4PSIyMCIgeT0iMTAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI4MCIgcng9IjEwIiByeT0iMTAiIGZpbGw9IiNGRjk4MDAiLz48cmVjdCB4PSI0MCIgeT0iMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjRkY5ODAwIi8+PGxpbmUgeDE9IjMwIiB5MT0iMzAiIHgyPSI3MCIgeTI9IjMwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjUiLz48bGluZSB4MT0iNTAiIHkxPSIyMCIgeDI9IjUwIiB5Mj0iNDAiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1widthPSI1Ii8+PGxpbmUgeDE9IjMwIiB5MT0iNzAiIHgyPSI3MCIgeTI9IjcwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjUiLz48L3N2Zz4=",
       "symbolSize": 45
     },
@@ -56,8 +56,8 @@
       "name": "居民区负荷",
       "type": "load_fixed",
       "currentPower": 80,
-      "x": 300, 
-      "y": 300,
+      "x": 200, 
+      "y": 380,
       "symbol": "image://data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgOTAgSDkwIFY1MCBMNTAgMjAgTDEwIDUwIFogTTMwIDkwIFY2MCBINDcwIFY5MCBNNDAgOTAgVDcwIEg2MCBWOTAiIHN0cm9rZT0iYmxhY2siIGZpbGw9IiM4QkMzNEEiIHN0cm9rZS1widthPSIyIi8+PHJlY3QgeD0iNDAiIHk9IjcwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9IiNBMTg4N0YiLz48L3N2Zz4=",
       "symbolSize": 45
     },
@@ -68,7 +68,7 @@
       "status": "generating",
       "currentPower": 180,
       "dailyEnergy": 900,
-      "x": 200, 
+      "x": 150, 
       "y": 220,
       "symbolSize": 50
     },
@@ -78,7 +78,7 @@
       "type": "charging_station",
       "status": "idle",
       "currentPower": 0,
-      "x": 200, 
+      "x": 480, 
       "y": 380,
       "symbolSize": 45
     }
