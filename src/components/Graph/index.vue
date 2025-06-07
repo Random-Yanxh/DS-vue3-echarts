@@ -20,31 +20,66 @@ const seriesConfig = ref([]) // 动态series配置
 
 // 预定义不同数据类型的配置信息
 const dataTypesConfig = {
-  // wp: {
-  //   text: '风电有功功率',
-  //   chartName: 'graph/wp',
-  //   yAxisName: '功率 (watts)',
-  //   seriesName: '功率'
-  // },
-  // wq: {
-  //   text: '风电无功功率',
-  //   chartName: 'graph/wq',
-  //   yAxisName: '功率 (var)',
-  //   seriesName: '无功功率'
-  // },
   ev_p: {
     text: '充电桩有功功率',
     chartName: 'graph/EVLog_P',
     yAxisName: '功率 (watts)',
     seriesName: '充电桩功率'
+  },
+  battery_p: {
+    text: '蓄电池有功功率',
+    chartName: 'graph/BatteryLog_P',
+    yAxisName: '功率 (watts)',
+    seriesName: '蓄电池功率'
+  },
+  grid_p: {
+    text: '电网有功功率',
+    chartName: 'graph/GridLog_P',
+    yAxisName: '功率 (watts)',
+    seriesName: '电网功率'
+  },
+  grid_va: {
+    text: '电网电压',
+    chartName: 'graph/GridLog_Va',
+    yAxisName: '电压 (V)',
+    seriesName: '电网电压'
+  },
+  load_p: {
+    text: '负荷有功功率',
+    chartName: 'graph/LoadLog_P',
+    yAxisName: '功率 (watts)',
+    seriesName: '负荷功率'
+  },
+  pel_p: {
+    text: '电解槽有功功率',
+    chartName: 'graph/PELLog_P',
+    yAxisName: '功率 (watts)',
+    seriesName: '电解槽功率'
+  },
+  pv_p: {
+    text: '光伏有功功率',
+    chartName: 'graph/PVLog_P',
+    yAxisName: '功率 (watts)',
+    seriesName: '光伏功率'
+  },
+  wind_p: {
+    text: '风机有功功率',
+    chartName: 'graph/WindLog_P',
+    yAxisName: '功率 (watts)',
+    seriesName: '风机功率'
   }
-  // 在此添加其他新的数据类型配置
-  // 例如:
-  // new_data_type_1: {
-  //   text: '新数据类型1',
-  //   chartName: 'graph/NewDataType1',
-  //   yAxisName: '单位1 (...)',
-  //   seriesName: '数据系列1'
+  // 如果后续还有 Q (无功功率) 和 Ia (电流) 的数据，可以按以下模式添加:
+  // battery_q: {
+  //   text: '蓄电池无功功率',
+  //   chartName: 'graph/BatteryLog_Q',
+  //   yAxisName: '无功功率 (var)',
+  //   seriesName: '蓄电池无功功率'
+  // },
+  // battery_ia: {
+  //   text: '蓄电池电流',
+  //   chartName: 'graph/BatteryLog_Ia',
+  //   yAxisName: '电流 (A)',
+  //   seriesName: '蓄电池电流'
   // },
 };
 
@@ -144,25 +179,28 @@ const updataChart = () => {
             boundaryGap: false,
             name: '仿真时间 (seconds)', // 固定为时间序列的X轴名称
             nameLocation: 'middle',
-            nameGap: 25,
-            axisLabel: { // X轴刻度标签格式化，仅当数据为数字时
+            nameGap: 35, // 增加nameGap为X轴下方dataZoom滑块留出更多空间
+            splitNumber: 8, // 建议X轴分割的段数，尝试控制标签数量
+            axisLabel: { // X轴刻度标签格式化
                 formatter: function (value) {
-                    // X轴时间显示5位小数
-                    return typeof value === 'number' ? parseFloat(value).toFixed(5) : value;
-                }
+                    // X轴时间标签显示3位小数以减少拥挤, Tooltip中仍为5位
+                    return typeof value === 'number' ? parseFloat(value).toFixed(3) : value;
+                },
+                // rotate: 30, // 如果标签依然拥挤，可以取消注释此行来旋转标签
             }
         },
         yAxis: {
             type: 'value',
             name: yAxisName.value, // 使用动态Y轴名称
             nameLocation: 'middle',
-            nameGap: titleFontSize.value * 1.8, // 调整间距
+            nameGap: titleFontSize.value * 1.8, // 适当调整Y轴标题与轴的间距, 可能需要根据grid.left调整
             axisLabel: {
                 formatter: function (value) {
-                    // 统一将 Y 轴数值格式化为3位小数
-                    return parseFloat(value).toFixed(3);
+                    // 将 Y 轴数值格式化为整数（不显示小数）
+                    return parseFloat(value).toFixed(0);
                 }
-            }
+            },
+            // splitNumber: 5, // 可以尝试调整Y轴的分割段数以优化刻度显示
         },
         legend: {
             left: 20,
@@ -216,11 +254,29 @@ const updataChart = () => {
             }
         },
         grid: {
-            left: '10%',
+            left: '14%', // 增加左边距，使Y轴标签能完整显示
             top: '35%',
             right: '4%',
-            bottom: '10%',
+            bottom: '15%', // 增加底部边距给 dataZoom 滑块
         },
+        dataZoom: [ // 添加 dataZoom 配置
+            {
+                type: 'slider', // 滑块型 dataZoom
+                show: true,
+                xAxisIndex: [0], // 控制X轴
+                start: 0, // 默认显示从开始
+                end: 100, // 默认显示到结束 (可以调整为例如 20 或更小的值，来默认显示更少的数据范围)
+                height: 20, // 滑块高度
+                bottom: 10, // 滑块距离底部的距离
+                showDetail: false, // 不在滑块两侧显示详细的起始结束百分比
+            },
+            {
+                type: 'inside', // 内置型 dataZoom，支持鼠标滚轮在图表区域内缩放
+                xAxisIndex: [0], // 控制X轴
+                start: 0,
+                end: 100,
+            }
+        ],
         series: seriesConfig.value
     }
     chartInstance.setOption(option)
