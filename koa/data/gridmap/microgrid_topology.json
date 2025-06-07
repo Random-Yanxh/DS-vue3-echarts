@@ -16,9 +16,9 @@
     },
     {
       "id": "ac_bus1",
-      "name": "交流母线 A",
+      "name": "600V交流母线",
       "type": "bus_ac",
-      "voltage": 220,
+      "voltage": 600,
       "x": 350, 
       "y": 300,
       "symbol": "rect",
@@ -35,13 +35,13 @@
       "currentPower": 150,
       "dailyEnergy": 750,
       "x": 350, 
-      "y": 180,
+      "y": 130,
       "symbol": "image://scr/icons8-太阳能板-60.png",
       "symbolSize": 45
     },
     {
       "id": "battery1",
-      "name": "储能系统",
+      "name": "蓄电池",
       "type": "storage_battery",
       "status": "charging",
       "soc": 60,
@@ -53,7 +53,7 @@
     },
     {
       "id": "load1",
-      "name": "居民区负荷",
+      "name": "可变负载",
       "type": "load_fixed",
       "currentPower": 80,
       "x": 200, 
@@ -74,12 +74,23 @@
     },
     {
       "id": "cs1",
-      "name": "充电桩 A",
+      "name": "充电桩",
       "type": "charging_station",
       "status": "idle",
       "currentPower": 0,
-      "x": 480, 
-      "y": 380,
+      "x": 520, 
+      "y": 420,
+      "symbolSize": 45
+    },
+    {
+      "id": "hydrogen1",
+      "name": "氢储能系统",
+      "type": "storage_hydrogen",
+      "status": "idle",
+      "soc": 70,
+      "power": 0,
+      "x": 550,
+      "y": 350,
       "symbolSize": 45
     }
   ],
@@ -88,7 +99,7 @@
       "source": "grid1",
       "target": "ac_bus1",
       "type": "ac_line",
-      "name": "主联络线",
+      "name": "并网/离网控制",
       "powerFlow": 500,
       "lineStyle": {
         "color": "#1E90FF",
@@ -99,7 +110,7 @@
       "source": "ac_bus1",
       "target": "pv1",
       "type": "ac_line",
-      "name": "光伏上网线",
+      "name": "光伏1kV直流母线",
       "powerFlow": -150,
       "lineStyle": {
         "color": "#FFD700",
@@ -110,7 +121,7 @@
       "source": "ac_bus1",
       "target": "battery1",
       "type": "ac_line",
-      "name": "储能连接线",
+      "name": "蓄电池2kV直流母线",
       "powerFlow": 50,
       "lineStyle": {
         "color": "#4CAF50",
@@ -132,7 +143,7 @@
       "source": "ac_bus1",
       "target": "wind1",
       "type": "ac_line",
-      "name": "风机上网线",
+      "name": "风机1.8kV直流母线",
       "powerFlow": -180,
       "lineStyle": {
         "width": 2
@@ -142,10 +153,21 @@
       "source": "ac_bus1",
       "target": "cs1",
       "type": "ac_line",
-      "name": "充电桩供电线",
+      "name": "充电桩1kV直流母线",
       "powerFlow": 0,
       "lineStyle": {
         "width": 2
+      }
+    },
+    {
+      "source": "ac_bus1",
+      "target": "hydrogen1",
+      "type": "ac_line",
+      "name": "氢储能1kV直流母线",
+      "powerFlow": 0,
+      "lineStyle": {
+        "width": 2,
+        "color": "#00BCD4"
       }
     }
   ]

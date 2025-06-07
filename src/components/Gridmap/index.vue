@@ -8,13 +8,13 @@ let chartInstance = null
 // 将 categories 定义移到这里，使其在 updataChart 和 updataChartData 中都可访问
 const categories = [
     { name: '电网', itemStyle: { color: '#4A90E2' } },          // type 'grid'
-    { name: '交流母线', itemStyle: { color: '#7ED321' } },    // type 'bus_ac'
+    { name: '600V交流母线', itemStyle: { color: '#7ED321' } },    // type 'bus_ac'
     { name: '光伏发电', itemStyle: { color: '#FFD700' } },    // type 'generation_pv'
     { name: '风力发电', itemStyle: { color: '#50E3C2' } },    // type 'generation_wind' (新增)
-    { name: '电池储能', itemStyle: { color: '#FF9800' } },    // type 'storage_battery'
+    { name: '蓄电池', itemStyle: { color: '#FF9800' } },    // type 'storage_battery'
     { name: '固定负荷', itemStyle: { color: '#F5A623' } },    // type 'load_fixed'
     { name: '充电桩', itemStyle: { color: '#BD10E0' } },      // type 'charging_station' (新增)
-
+    { name: '氢储能', itemStyle: { color: '#00BCD4' } },    // type 'storage_hydrogen' (新增)
 ];
 const initChart = () => {
     chartInstance = echarts.init(map_chart.value, 'chalk')
@@ -165,12 +165,13 @@ const updataChart = () => {
 const getNodeTypeDisplay = (type) => {
     // const category = categories.find(cat => cat.name.toLowerCase().includes(type.replace(/_/g, '').toLowerCase()));
     if (type === 'grid') return '公共电网';
-    if (type === 'bus_ac') return '交流母线';
+    if (type === 'bus_ac') return '600V交流母线';
     if (type === 'generation_pv') return '光伏发电';
     if (type === 'generation_wind') return '风力发电';
-    if (type === 'storage_battery') return '电池储能';
+    if (type === 'storage_battery') return '蓄电池';
     if (type === 'load_fixed') return '固定负荷';
     if (type === 'charging_station') return '充电桩'; // 新增
+    if (type === 'storage_hydrogen') return '氢储能系统'; // 新增
     return type; // 默认返回原始类型
 };
 
@@ -200,7 +201,7 @@ const updataChartData = () => {
                         symbolPath = 'image:///icons/gridmap/grid.svg';
                         finalSymbolSize = baseSymbolSize * 1.6; // 电网节点稍大
                     } else if (nodeTypeLower === 'bus_ac') {
-                        categoryIndex = 1; // 交流母线
+                        categoryIndex = 1; // 600V交流母线
                         symbolPath = 'rect';
                         finalSymbolSize = [baseSymbolSize * 3, baseSymbolSize * 0.6]; // 母线长条形
                     } else if (nodeTypeLower === 'generation_pv') {
@@ -212,7 +213,7 @@ const updataChartData = () => {
                         symbolPath = 'image:///icons/gridmap/windpower.svg';
                         finalSymbolSize = baseSymbolSize * 1.4;
                     } else if (nodeTypeLower === 'storage_battery') {
-                        categoryIndex = 4; // 电池储能 (索引已更新)
+                        categoryIndex = 4; // 蓄电池
                         symbolPath = 'image:///icons/gridmap/battery.svg';
                         finalSymbolSize = baseSymbolSize * 1.3;
                     } else if (nodeTypeLower === 'load_fixed') {
@@ -220,10 +221,14 @@ const updataChartData = () => {
                         symbolPath = 'image:///icons/gridmap/load.svg';
                         finalSymbolSize = baseSymbolSize * 1.2;
                     } else if(nodeTypeLower === 'charging_station') {
-                        categoryIndex = 6; // 充电桩 (新增)
+                        categoryIndex = 6; // 充电桩
                         symbolPath = 'image:///icons/gridmap/charging_station.svg';
                         finalSymbolSize = baseSymbolSize * 1.2
-                    } 
+                    } else if (nodeTypeLower === 'storage_hydrogen') {
+                        categoryIndex = 7; // 氢储能
+                        symbolPath = 'image:///icons/gridmap/hydragen.svg';
+                        finalSymbolSize = baseSymbolSize * 1.3;
+                    }
                     
                     // 根据节点状态调整样式 (示例)
                     // 假设 node.status: 'ok', 'warning', 'offline', 'fault'
