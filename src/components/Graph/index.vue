@@ -14,58 +14,120 @@ const initChart = () => {
 // 初始化数据
 const allData = ref({}) // 会存储来自API的完整数据，包括可能的type数组
 const chartData = ref([]) // ECharts dataset.source
-const currentDataType = ref('wp') // 'wp' 或 'graph' (或其他未来类型)
+const currentDataType = ref('ev_p') // 默认加载 'ev_p'
 const yAxisName = ref('功率 (watts)') // 动态Y轴名称
 const seriesConfig = ref([]) // 动态series配置
 
 // 预定义不同数据类型的配置信息
 const dataTypesConfig = {
-  wp: {
-    text: '风电有功功率',
-    chartName: 'graph/wp',
+  // wp: {
+  //   text: '风电有功功率',
+  //   chartName: 'graph/wp',
+  //   yAxisName: '功率 (watts)',
+  //   seriesName: '功率'
+  // },
+  // wq: {
+  //   text: '风电无功功率',
+  //   chartName: 'graph/wq',
+  //   yAxisName: '功率 (var)',
+  //   seriesName: '无功功率'
+  // },
+  ev_p: {
+    text: '充电桩有功功率',
+    chartName: 'graph/EVLog_P',
     yAxisName: '功率 (watts)',
-    seriesName: '功率' // 单系列时的名称
-  },
-  wq: {
-    text: '风电无功功率',
-    chartName: 'graph/wq',
-    yAxisName: '功率 (var)', // 假设单位为 var
-    seriesName: '无功功率' // 单系列时的名称
+    seriesName: '充电桩功率'
   }
-  // graph 类型已移除以简化
+  // 在此添加其他新的数据类型配置
+  // 例如:
+  // new_data_type_1: {
+  //   text: '新数据类型1',
+  //   chartName: 'graph/NewDataType1',
+  //   yAxisName: '单位1 (...)',
+  //   seriesName: '数据系列1'
+  // },
 };
 
 
 const getChartData = async (res) => {
-    console.log('Graph: getChartData - Received raw response for type:', currentDataType.value, res);
-    allData.value = res; // 存储完整响应
+    console.log('Graph: getChartData - Received raw response for type:', currentDataType.value);
+    let parsedRes = res;
+    if (typeof res === 'string') {
+        try {
+            parsedRes = JSON.parse(res);
+        } catch (error) {
+            console.error('Graph: getChartData - Failed to parse response string:', error, res);
+            // Initialize allData.value to a structure that won't break downstream logic
+            allData.value = {
+                time_series: [],
+                type: Object.entries(dataTypesConfig).map(([key, val]) => ({ key, text: val.text }))
+            };
+            handleChartData(); // Process empty data
+            updataChart();
+            updataChartData();
+            return;
+        }
+    }
+    console.log('Graph: getChartData - Parsed response:', parsedRes);
 
-    // 为下拉菜单生成选项，只包含 wp 和 wq
-    allData.value.type = Object.entries(dataTypesConfig)
+    const currentTypesForDropdown = Object.entries(dataTypesConfig)
         .map(([key, val]) => ({ key, text: val.text }));
 
-    console.log('Graph: getChartData - allData.value after assignment:', JSON.stringify(allData.value));
+    if (Array.isArray(parsedRes)) {
+        // Backend sent the array directly (e.g. EVLog_P.json content), wrap it
+        allData.value = { time_series: parsedRes, type: currentTypesForDropdown };
+        console.log('Graph: getChartData - Wrapped array response into { time_series: ..., type: ... } structure.');
+    } else if (typeof parsedRes === 'object' && parsedRes !== null) {
+        // Backend sent an object. We assume it might already have time_series.
+        // Ensure 'type' for the dropdown is present or added.
+        allData.value = { ...parsedRes, type: currentTypesForDropdown };
+        if (!parsedRes.time_series) {
+             console.warn('Graph: getChartData - Received object response does not have a time_series property.', parsedRes);
+             // Ensure time_series exists, even if empty, to prevent errors in handleChartData
+             if (!allData.value.time_series) allData.value.time_series = [];
+        }
+    } else {
+        console.error('Graph: getChartData - Parsed response is not an array or recognized object:', parsedRes);
+        allData.value = { time_series: [], type: currentTypesForDropdown };
+    }
+
+    console.log('Graph: getChartData - allData.value after assignment and type generation:', JSON.stringify(allData.value));
     handleChartData();
-    updataChart(); // 更新图表配置，包括Y轴名称和series结构
-    updataChartData(); // 更新图表数据
+    updataChart();
+    updataChartData();
 }
 
 const handleChartData = () => {
-    console.log('Graph: handleChartData - currentDataType:', currentDataType.value, '- allData.value at entry:', JSON.stringify(allData.value));
-    if ((currentDataType.value === 'wp' || currentDataType.value === 'wq') && allData.value && allData.value.time_series) {
-        const times = allData.value.time_series.map(item => item.time);
-        const values = allData.value.time_series.map(item => item.power);
-        const seriesName = dataTypesConfig[currentDataType.value].seriesName; // key guaranteed to exist
-        chartData.value = [
-            ['仿真时间', ...times],
-            [seriesName, ...values]
-        ];
-        console.log(`Graph: Processed ${currentDataType.value} data`);
+    console.log('Graph: handleChartData - currentDataType:', currentDataType.value);
+    console.log('Graph: handleChartData - allData.value at entry:', JSON.stringify(allData.value));
+
+    if (allData.value && Array.isArray(allData.value.time_series)) {
+        if (allData.value.time_series.length === 0) {
+            console.log('Graph: handleChartData - time_series is empty.');
+            chartData.value = [];
+        } else {
+            // 假设 time_series 中的每个元素都有 time 和 value
+            const times = allData.value.time_series.map(item => item.time);
+            const values = allData.value.time_series.map(item => item.value); // 直接使用 item.value
+
+            // 确保 currentDataType.value 存在于 dataTypesConfig 中以获取 seriesName
+            if (dataTypesConfig[currentDataType.value]) {
+                const seriesName = dataTypesConfig[currentDataType.value].seriesName;
+                chartData.value = [
+                    ['仿真时间', ...times],
+                    [seriesName, ...values]
+                ];
+                console.log(`Graph: Processed ${currentDataType.value} data. First few data points for values:`, values.slice(0, 5));
+            } else {
+                console.warn(`Graph: handleChartData - currentDataType '${currentDataType.value}' not found in dataTypesConfig.`);
+                chartData.value = [];
+            }
+        }
     } else {
-        console.warn('Graph: handleChartData - Data structure not recognized or currentDataType mismatch for wp/wq', currentDataType.value, allData.value);
-        chartData.value = []; // Clear chart data if not wp/wq or structure is wrong
+        console.warn('Graph: handleChartData - allData.value.time_series is not an array or allData.value is null/undefined.', allData.value);
+        chartData.value = []; // Clear chart data if structure is wrong
     }
-    console.log('Graph: handleChartData - chartData.value after processing:', JSON.stringify(chartData.value));
+    console.log('Graph: handleChartData - chartData.value after processing (first 5 rows if large):', chartData.value.length > 0 ? chartData.value.map(row => row.slice(0,6)) : []);
 }
 
 // echarts配置
@@ -85,7 +147,8 @@ const updataChart = () => {
             nameGap: 25,
             axisLabel: { // X轴刻度标签格式化，仅当数据为数字时
                 formatter: function (value) {
-                    return typeof value === 'number' ? parseFloat(value).toFixed(3) : value;
+                    // X轴时间显示5位小数
+                    return typeof value === 'number' ? parseFloat(value).toFixed(5) : value;
                 }
             }
         },
@@ -96,8 +159,8 @@ const updataChart = () => {
             nameGap: titleFontSize.value * 1.8, // 调整间距
             axisLabel: {
                 formatter: function (value) {
-                    // wp 和 wq 数据3位小数，其他2位
-                    return parseFloat(value).toFixed((currentDataType.value === 'wp' || currentDataType.value === 'wq') ? 3 : 2);
+                    // 统一将 Y 轴数值格式化为3位小数
+                    return parseFloat(value).toFixed(3);
                 }
             }
         },
@@ -123,12 +186,13 @@ const updataChart = () => {
                     let timeValFormatted = timeValRaw; // 格式化后的X轴值
 
                     // 尝试将timeValRaw格式化为三位小数的数字字符串
+                    // 尝试将timeValRaw格式化为五位小数的数字字符串
                     if (typeof timeValRaw === 'number') {
-                        timeValFormatted = timeValRaw.toFixed(3);
+                        timeValFormatted = timeValRaw.toFixed(5);
                     } else if (typeof timeValRaw === 'string') {
                         const parsedNum = parseFloat(timeValRaw);
                         if (!isNaN(parsedNum)) {
-                            timeValFormatted = parsedNum.toFixed(3);
+                            timeValFormatted = parsedNum.toFixed(5);
                         }
                         // 如果不能解析为数字，则保持原样 (timeValFormatted 初始值就是 timeValRaw)
                     }
@@ -173,8 +237,8 @@ const updataChartData = () => {
 
 // 标题
 const openOl = ref(false)
-const choiceType = ref('wp') // 默认选择 'wp' (风电有功功率)
-const graphTitle = ref(dataTypesConfig.wp.text) // 初始标题
+const choiceType = ref('ev_p') // 默认选择 'ev_p'
+const graphTitle = ref(dataTypesConfig.ev_p ? dataTypesConfig.ev_p.text : '数据图表') // 初始标题，确保 ev_p 存在
 
 const handleChangeType = (record) => {
     choiceType.value = record.key;
