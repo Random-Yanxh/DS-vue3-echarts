@@ -12,76 +12,75 @@ const initChart = () => {
 }
 
 // 初始化数据
-const allData = ref({}) // 会存储来自API的完整数据，包括可能的type数组
+const allData = ref({}) // 会存储来自API的完整数据
 const chartData = ref([]) // ECharts dataset.source
-const currentDataType = ref('ev_p') // 默认加载 'ev_p'
-const yAxisName = ref('功率 (watts)') // 动态Y轴名称
-const seriesConfig = ref([]) // 动态series配置
+// yAxisName 和 seriesConfig 会在 updataChart 中根据 currentDataType 设置，初始值影响不大
+const yAxisName = ref('')
+const seriesConfig = ref([])
 
-// 预定义不同数据类型的配置信息
+// --- 新的状态和选项 для двух выпадающих списков ---
+const moduleOptions = ref([
+    { key: 'BatteryLog', text: '蓄电池' },
+    { key: 'EVLog', text: '充电桩' },
+    { key: 'GridLog', text: '电网' },
+    { key: 'LoadLog', text: '负荷' },
+    { key: 'PELLog', text: '电解槽' },
+    { key: 'PVLog', text: '光伏' },
+    { key: 'WindLog', text: '风机' },
+]);
+
+const parameterOptions = ref([
+    { key: 'P', text: 'P--有功功率' },
+    { key: 'Q', text: 'Q--无功功率' },
+    { key: 'Va', text: 'Va--电压' },
+    { key: 'Ia', text: 'Ia--电流' },
+]);
+
+const selectedModuleKey = ref('EVLog'); // 默认模块
+const selectedParameterKey = ref('P');   // 默认参数
+
+// currentDataType 仍然是核心的内部状态，由选定的模块和参数派生而来
+const currentDataType = ref('ev_p'); // 初始值基于默认选择
+
+// 预定义所有28种数据类型的配置信息
 const dataTypesConfig = {
-  ev_p: {
-    text: '充电桩有功功率',
-    chartName: 'graph/EVLog_P',
-    yAxisName: '功率 (watts)',
-    seriesName: '充电桩功率'
-  },
-  battery_p: {
-    text: '蓄电池有功功率',
-    chartName: 'graph/BatteryLog_P',
-    yAxisName: '功率 (watts)',
-    seriesName: '蓄电池功率'
-  },
-  grid_p: {
-    text: '电网有功功率',
-    chartName: 'graph/GridLog_P',
-    yAxisName: '功率 (watts)',
-    seriesName: '电网功率'
-  },
-  grid_va: {
-    text: '电网电压',
-    chartName: 'graph/GridLog_Va',
-    yAxisName: '电压 (V)',
-    seriesName: '电网电压'
-  },
-  load_p: {
-    text: '负荷有功功率',
-    chartName: 'graph/LoadLog_P',
-    yAxisName: '功率 (watts)',
-    seriesName: '负荷功率'
-  },
-  pel_p: {
-    text: '电解槽有功功率',
-    chartName: 'graph/PELLog_P',
-    yAxisName: '功率 (watts)',
-    seriesName: '电解槽功率'
-  },
-  pv_p: {
-    text: '光伏有功功率',
-    chartName: 'graph/PVLog_P',
-    yAxisName: '功率 (watts)',
-    seriesName: '光伏功率'
-  },
-  wind_p: {
-    text: '风机有功功率',
-    chartName: 'graph/WindLog_P',
-    yAxisName: '功率 (watts)',
-    seriesName: '风机功率'
-  }
-  // 如果后续还有 Q (无功功率) 和 Ia (电流) 的数据，可以按以下模式添加:
-  // battery_q: {
-  //   text: '蓄电池无功功率',
-  //   chartName: 'graph/BatteryLog_Q',
-  //   yAxisName: '无功功率 (var)',
-  //   seriesName: '蓄电池无功功率'
-  // },
-  // battery_ia: {
-  //   text: '蓄电池电流',
-  //   chartName: 'graph/BatteryLog_Ia',
-  //   yAxisName: '电流 (A)',
-  //   seriesName: '蓄电池电流'
-  // },
+  // BatteryLog
+  battery_p: { text: '蓄电池有功功率', chartName: 'graph/BatteryLog_P', yAxisName: '功率 (watts)', seriesName: '蓄电池有功功率' },
+  battery_q: { text: '蓄电池无功功率', chartName: 'graph/BatteryLog_Q', yAxisName: '无功功率 (var)', seriesName: '蓄电池无功功率' },
+  battery_va: { text: '蓄电池电压', chartName: 'graph/BatteryLog_Va', yAxisName: '电压 (V)', seriesName: '蓄电池电压' },
+  battery_ia: { text: '蓄电池电流', chartName: 'graph/BatteryLog_Ia', yAxisName: '电流 (A)', seriesName: '蓄电池电流' },
+  // EVLog
+  ev_p: { text: '充电桩有功功率', chartName: 'graph/EVLog_P', yAxisName: '功率 (watts)', seriesName: '充电桩有功功率' },
+  ev_q: { text: '充电桩无功功率', chartName: 'graph/EVLog_Q', yAxisName: '无功功率 (var)', seriesName: '充电桩无功功率' },
+  ev_va: { text: '充电桩电压', chartName: 'graph/EVLog_Va', yAxisName: '电压 (V)', seriesName: '充电桩电压' },
+  ev_ia: { text: '充电桩电流', chartName: 'graph/EVLog_Ia', yAxisName: '电流 (A)', seriesName: '充电桩电流' },
+  // GridLog
+  grid_p: { text: '电网有功功率', chartName: 'graph/GridLog_P', yAxisName: '功率 (watts)', seriesName: '电网有功功率' },
+  grid_q: { text: '电网无功功率', chartName: 'graph/GridLog_Q', yAxisName: '无功功率 (var)', seriesName: '电网无功功率' },
+  grid_va: { text: '电网电压', chartName: 'graph/GridLog_Va', yAxisName: '电压 (V)', seriesName: '电网电压' },
+  grid_ia: { text: '电网电流', chartName: 'graph/GridLog_Ia', yAxisName: '电流 (A)', seriesName: '电网电流' },
+  // LoadLog
+  load_p: { text: '负荷有功功率', chartName: 'graph/LoadLog_P', yAxisName: '功率 (watts)', seriesName: '负荷有功功率' },
+  load_q: { text: '负荷无功功率', chartName: 'graph/LoadLog_Q', yAxisName: '无功功率 (var)', seriesName: '负荷无功功率' },
+  load_va: { text: '负荷电压', chartName: 'graph/LoadLog_Va', yAxisName: '电压 (V)', seriesName: '负荷电压' },
+  load_ia: { text: '负荷电流', chartName: 'graph/LoadLog_Ia', yAxisName: '电流 (A)', seriesName: '负荷电流' },
+  // PELLog
+  pel_p: { text: '电解槽有功功率', chartName: 'graph/PELLog_P', yAxisName: '功率 (watts)', seriesName: '电解槽有功功率' },
+  pel_q: { text: '电解槽无功功率', chartName: 'graph/PELLog_Q', yAxisName: '无功功率 (var)', seriesName: '电解槽无功功率' },
+  pel_va: { text: '电解槽电压', chartName: 'graph/PELLog_Va', yAxisName: '电压 (V)', seriesName: '电解槽电压' },
+  pel_ia: { text: '电解槽电流', chartName: 'graph/PELLog_Ia', yAxisName: '电流 (A)', seriesName: '电解槽电流' },
+  // PVLog
+  pv_p: { text: '光伏有功功率', chartName: 'graph/PVLog_P', yAxisName: '功率 (watts)', seriesName: '光伏有功功率' },
+  pv_q: { text: '光伏无功功率', chartName: 'graph/PVLog_Q', yAxisName: '无功功率 (var)', seriesName: '光伏无功功率' },
+  pv_va: { text: '光伏电压', chartName: 'graph/PVLog_Va', yAxisName: '电压 (V)', seriesName: '光伏电压' },
+  pv_ia: { text: '光伏电流', chartName: 'graph/PVLog_Ia', yAxisName: '电流 (A)', seriesName: '光伏电流' },
+  // WindLog
+  wind_p: { text: '风机有功功率', chartName: 'graph/WindLog_P', yAxisName: '功率 (watts)', seriesName: '风机有功功率' },
+  wind_q: { text: '风机无功功率', chartName: 'graph/WindLog_Q', yAxisName: '无功功率 (var)', seriesName: '风机无功功率' },
+  wind_va: { text: '风机电压', chartName: 'graph/WindLog_Va', yAxisName: '电压 (V)', seriesName: '风机电压' },
+  wind_ia: { text: '风机电流', chartName: 'graph/WindLog_Ia', yAxisName: '电流 (A)', seriesName: '风机电流' },
 };
+// --- END ---
 
 
 const getChartData = async (res) => {
@@ -93,10 +92,7 @@ const getChartData = async (res) => {
         } catch (error) {
             console.error('Graph: getChartData - Failed to parse response string:', error, res);
             // Initialize allData.value to a structure that won't break downstream logic
-            allData.value = {
-                time_series: [],
-                type: Object.entries(dataTypesConfig).map(([key, val]) => ({ key, text: val.text }))
-            };
+            allData.value = { time_series: [] }; // 清除旧的 type 属性
             handleChartData(); // Process empty data
             updataChart();
             updataChartData();
@@ -105,28 +101,22 @@ const getChartData = async (res) => {
     }
     console.log('Graph: getChartData - Parsed response:', parsedRes);
 
-    const currentTypesForDropdown = Object.entries(dataTypesConfig)
-        .map(([key, val]) => ({ key, text: val.text }));
-
+    // 移除 currentTypesForDropdown 和 allData.value.type 的赋值
     if (Array.isArray(parsedRes)) {
-        // Backend sent the array directly (e.g. EVLog_P.json content), wrap it
-        allData.value = { time_series: parsedRes, type: currentTypesForDropdown };
-        console.log('Graph: getChartData - Wrapped array response into { time_series: ..., type: ... } structure.');
+        allData.value = { time_series: parsedRes };
+        console.log('Graph: getChartData - Wrapped array response into { time_series: ... } structure.');
     } else if (typeof parsedRes === 'object' && parsedRes !== null) {
-        // Backend sent an object. We assume it might already have time_series.
-        // Ensure 'type' for the dropdown is present or added.
-        allData.value = { ...parsedRes, type: currentTypesForDropdown };
-        if (!parsedRes.time_series) {
+        allData.value = parsedRes; // 假设后端可能发送 { time_series: [...] }
+        if (!allData.value.time_series) { // 确保 time_series 存在
              console.warn('Graph: getChartData - Received object response does not have a time_series property.', parsedRes);
-             // Ensure time_series exists, even if empty, to prevent errors in handleChartData
-             if (!allData.value.time_series) allData.value.time_series = [];
+             allData.value.time_series = [];
         }
     } else {
         console.error('Graph: getChartData - Parsed response is not an array or recognized object:', parsedRes);
-        allData.value = { time_series: [], type: currentTypesForDropdown };
+        allData.value = { time_series: [] };
     }
 
-    console.log('Graph: getChartData - allData.value after assignment and type generation:', JSON.stringify(allData.value));
+    console.log('Graph: getChartData - allData.value after assignment:', JSON.stringify(allData.value));
     handleChartData();
     updataChart();
     updataChartData();
@@ -172,6 +162,10 @@ const updataChart = () => {
     yAxisName.value = dataTypesConfig[currentDataType.value].yAxisName;
     seriesConfig.value = [{ name: dataTypesConfig[currentDataType.value].seriesName, type: 'line', seriesLayoutBy: 'row', areaStyle: { opacity: 0.1 } }];
 
+    const chartWidth = graph_chart.value ? graph_chart.value.offsetWidth : 0;
+    const wideLayoutThreshold = 900; // 定义宽度阈值 (像素)
+    const currentSplitNumber = chartWidth > wideLayoutThreshold ? 15 : 8;
+
     const option = {
         backgroundColor: 'transparent',
         xAxis: {
@@ -180,7 +174,7 @@ const updataChart = () => {
             name: '仿真时间 (seconds)', // 固定为时间序列的X轴名称
             nameLocation: 'middle',
             nameGap: 35, // 增加nameGap为X轴下方dataZoom滑块留出更多空间
-            splitNumber: 8, // 建议X轴分割的段数，尝试控制标签数量
+            splitNumber: currentSplitNumber, // 根据宽度动态设置
             axisLabel: { // X轴刻度标签格式化
                 formatter: function (value) {
                     // X轴时间标签显示3位小数以减少拥挤, Tooltip中仍为5位
@@ -257,18 +251,31 @@ const updataChart = () => {
             left: '14%', // 增加左边距，使Y轴标签能完整显示
             top: '35%',
             right: '4%',
-            bottom: '15%', // 增加底部边距给 dataZoom 滑块
+            bottom: '70px', // 固定像素值，为dataZoom确保足够空间
         },
-        dataZoom: [ // 添加 dataZoom 配置
+        dataZoom: [
             {
-                type: 'slider', // 滑块型 dataZoom
-                show: true,
-                xAxisIndex: [0], // 控制X轴
-                start: 0, // 默认显示从开始
-                end: 100, // 默认显示到结束 (可以调整为例如 20 或更小的值，来默认显示更少的数据范围)
-                height: 20, // 滑块高度
-                bottom: 10, // 滑块距离底部的距离
-                showDetail: false, // 不在滑块两侧显示详细的起始结束百分比
+                type: 'slider',
+                show: true, // 确保滑块显示
+                xAxisIndex: [0],
+                start: 0,
+                end: 100,
+                height: 20,
+                bottom: 10, // 标准的底部距离
+                handleIcon: 'path://M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+                handleSize: '80%',
+                dataBackground: {
+                    areaStyle: {
+                        color: 'rgba(70,130,180,0.3)'
+                    },
+                    lineStyle: {
+                        opacity: 0.8,
+                        color: '#8392A5'
+                    }
+                },
+                fillerColor: 'rgba(135,206,250,0.2)', // 滑块选中区域颜色
+                borderColor: '#ddd',
+                showDetail: false,
             },
             {
                 type: 'inside', // 内置型 dataZoom，支持鼠标滚轮在图表区域内缩放
@@ -291,34 +298,102 @@ const updataChartData = () => {
     chartInstance.setOption(option)
 }
 
-// 标题
-const openOl = ref(false)
-const choiceType = ref('ev_p') // 默认选择 'ev_p'
-const graphTitle = ref(dataTypesConfig.ev_p ? dataTypesConfig.ev_p.text : '数据图表') // 初始标题，确保 ev_p 存在
+// 标题和下拉列表控制
+const openModuleOl = ref(false);
+const openParameterOl = ref(false);
+const graphTitle = ref(''); // 将由 watchEffect 或 updateAndFetchData 更新
 
-const handleChangeType = (record) => {
-    choiceType.value = record.key;
-    currentDataType.value = record.key; // 更新当前数据类型
-    graphTitle.value = record.text;
+// 辅助函数，将模块键（如 'BatteryLog'）转换为前缀（如 'battery'）
+const moduleKeyToPrefix = (moduleKey) => {
+    if (!moduleKey) return '';
+    return moduleKey.replace('Log', '').toLowerCase();
+};
 
-    // record.key 只会是 'wp' 或 'wq'，它们必然存在于 dataTypesConfig 中
-    let targetChartName = dataTypesConfig[record.key].chartName;
+// 核心函数：当模块或参数选择变化时，更新数据类型、标题并获取数据
+const updateAndFetchData = () => {
+    if (!selectedModuleKey.value || !selectedParameterKey.value) {
+        console.warn("Graph: Module or Parameter not selected yet for fetching data.");
+        return;
+    }
 
-    console.log(`Graph: handleChangeType - choiceType: ${choiceType.value}, determined chartName: ${targetChartName}`);
-    socket.send({
-        action: 'getData',
-        socketType: 'graphData',
-        chartName: targetChartName,
-        value: ''
-    });
-    // getChartData 回调会处理数据更新和图表刷新
-    openOl.value = !openOl.value
-}
+    const modulePrefix = moduleKeyToPrefix(selectedModuleKey.value);
+    const paramSuffix = selectedParameterKey.value.toLowerCase();
+    const newDataTypeKey = `${modulePrefix}_${paramSuffix}`;
+
+    if (dataTypesConfig[newDataTypeKey]) {
+        currentDataType.value = newDataTypeKey; // 更新当前的内部数据类型键
+        const currentConfig = dataTypesConfig[newDataTypeKey];
+        // graphTitle.value = currentConfig.text; // 标题更新移至 watchEffect
+
+        console.log(`Graph: Requesting data for Module: ${selectedModuleKey.value}, Param: ${selectedParameterKey.value}. DataTypeKey: ${newDataTypeKey}, ChartName: ${currentConfig.chartName}`);
+        socket.send({
+            action: 'getData',
+            socketType: 'graphData',
+            chartName: currentConfig.chartName,
+            value: ''
+        });
+        // getChartData 回调会处理数据更新和图表刷新 (updataChart, updataChartData)
+    } else {
+        console.error(`Graph: No configuration found for key ${newDataTypeKey} (Module: ${selectedModuleKey.value}, Param: ${selectedParameterKey.value})`);
+        chartData.value = []; // 清空图表数据
+        graphTitle.value = "数据未配置"; // 设置错误标题
+        if (chartInstance) { // 确保 chartInstance 已初始化
+             // 调用 updataChart 来更新轴名称等，即使数据为空
+            updataChart(); // 这会使用新的(可能无效的)currentDataType, yAxisName可能需要默认值
+            updataChartData(); // 这会设置空的 dataset
+        }
+    }
+};
+
+// 模块选择处理函数
+const handleModuleChange = (module) => {
+    selectedModuleKey.value = module.key;
+    openModuleOl.value = false; // 关闭模块下拉
+    updateAndFetchData(); // 获取新数据
+};
+
+// 参数选择处理函数
+const handleParameterChange = (parameter) => {
+    selectedParameterKey.value = parameter.key;
+    openParameterOl.value = false; // 关闭参数下拉
+    updateAndFetchData(); // 获取新数据
+};
+
+// 使用 watchEffect 动态更新图表标题，确保响应性和正确性
+import { watchEffect } from 'vue';
+watchEffect(() => {
+    const modulePrefix = moduleKeyToPrefix(selectedModuleKey.value);
+    const paramSuffix = selectedParameterKey.value ? selectedParameterKey.value.toLowerCase() : '';
+    
+    if (modulePrefix && paramSuffix) {
+        const key = `${modulePrefix}_${paramSuffix}`;
+        if (dataTypesConfig[key]) {
+            graphTitle.value = dataTypesConfig[key].text;
+        } else {
+            // 如果组合无效，显示一个通用或默认的标题
+            const moduleText = moduleOptions.value.find(m => m.key === selectedModuleKey.value)?.text || selectedModuleKey.value;
+            const paramTextObj = parameterOptions.value.find(p => p.key === selectedParameterKey.value);
+            const paramDisplayText = paramTextObj ? paramTextObj.text.substring(paramTextObj.text.indexOf('--') + 2) : selectedParameterKey.value;
+            graphTitle.value = `${moduleText} - ${paramDisplayText} (未配置)`;
+        }
+    } else {
+        // 初始或部分选择时的标题
+         const moduleText = moduleOptions.value.find(m => m.key === selectedModuleKey.value)?.text || '选择模块';
+         const paramTextObj = parameterOptions.value.find(p => p.key === selectedParameterKey.value);
+         const paramDisplayText = paramTextObj ? paramTextObj.text.substring(paramTextObj.text.indexOf('--') + 2) : '选择参数';
+         graphTitle.value = `${moduleText} - ${paramDisplayText}`;
+    }
+});
 
 // 分辨率适配
-const titleFontSize = ref(0)
+const titleFontSize = ref(0) // Base for main title (though text is hidden), can be kept for other potential uses
+const controlTextSize = ref(0) // New ref for dropdown control text size
+
 const screenAdapter = () => {
-    titleFontSize.value = graph_chart.value.offsetWidth / 100 * 3.6
+    if (!graph_chart.value) return;
+    const chartWidth = graph_chart.value.offsetWidth;
+    titleFontSize.value = chartWidth / 100 * 3.6; // This is for ECharts internal elements like axis names
+    // controlTextSize.value = chartWidth / 100 * 1.6; // 移除 controlTextSize, 使用固定像素值
     updataChart()
     chartInstance.resize()
 }
@@ -336,10 +411,11 @@ onMounted(() => {
     socket.send({
         action: 'getData',
         socketType: 'graphData',
-        // choiceType.value 初始为 'wp'，必然存在于 dataTypesConfig
-        chartName: dataTypesConfig[choiceType.value].chartName,
+        // 使用 currentDataType (基于默认的 selectedModuleKey 和 selectedParameterKey)
+        chartName: dataTypesConfig[currentDataType.value] ? dataTypesConfig[currentDataType.value].chartName : '',
         value: ''
-    })
+    });
+    // 初始加载时，标题将由 watchEffect 设置，数据由上面的 socket.send 获取
     screenAdapter()
     window.addEventListener('resize', screenAdapter)
 })
@@ -354,12 +430,36 @@ defineExpose({
 
 <template>
     <div class="graph_container">
-        <div class="graph_title">
-            <span>{{ '▎' + graphTitle }}</span>
-            <span class="iconfont title_icon" @click="openOl = !openOl">&#xe6eb;</span>
-            <ol v-show="openOl">
-                <li v-for="i in allData.type" :key="i.key" @click="handleChangeType(i)">{{ i.text }}</li>
-            </ol>
+        <div class="graph_title_area">
+            <div class="main_title_text">
+                <span>▎</span>
+            </div>
+            <div class="dropdown_controls">
+                <div class="control_group">
+                    <span class="control_label">模块:</span>
+                    <div class="selected_display" @click="openModuleOl = !openModuleOl; openParameterOl = false;">
+                        <span>{{ moduleOptions.find(m => m.key === selectedModuleKey)?.text || '选择模块' }}</span>
+                        <span class="iconfont control_icon">&#xe6eb;</span>
+                    </div>
+                    <ol v-show="openModuleOl" class="control_dropdown module_dropdown_list">
+                        <li v-for="moduleItem in moduleOptions" :key="moduleItem.key" @click="handleModuleChange(moduleItem)">
+                            {{ moduleItem.text }}
+                        </li>
+                    </ol>
+                </div>
+                <div class="control_group">
+                    <span class="control_label">参数:</span>
+                    <div class="selected_display" @click="openParameterOl = !openParameterOl; openModuleOl = false;">
+                        <span>{{ parameterOptions.find(p => p.key === selectedParameterKey)?.text || '选择参数' }}</span>
+                        <span class="iconfont control_icon">&#xe6eb;</span>
+                    </div>
+                    <ol v-show="openParameterOl" class="control_dropdown parameter_dropdown_list">
+                        <li v-for="parameterItem in parameterOptions" :key="parameterItem.key" @click="handleParameterChange(parameterItem)">
+                            {{ parameterItem.text }}
+                        </li>
+                    </ol>
+                </div>
+            </div>
         </div>
         <div class="graph_chart" ref="graph_chart"></div>
     </div>
@@ -373,52 +473,111 @@ defineExpose({
 }
 
 .graph_container {
-background-color: rgba(10, 25, 47, 0.75);
+    background-color: rgba(10, 25, 47, 0.75);
     position: relative;
+    display: flex; /* Use flex for overall layout */
+    flex-direction: column; /* Stack title area and chart vertically */
 }
 
-/* General ol/li styles removed as they were too broad or handled by specific component styles. */
-
-.graph_title {
-    position: absolute; /* This allows ol to be positioned relative to it */
-    z-index: 1;
+.graph_title_area {
+    position: relative; /* Changed from absolute to flow with flex */
+    z-index: 10; /* Ensure it's above the chart if any overlap, though flex should prevent it */
     color: #fff;
-    padding: 20px;
-    /* position: relative; /* Not strictly needed if .graph_container is relative and .graph_title is absolute for ol positioning */
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%; /* Ensure it takes full width */
+    box-sizing: border-box;
+    flex-shrink: 0; /* Prevent title area from shrinking */
 }
 
-.graph_title .title_icon { /* 特指 icon 的大小 */
-    font-size: v-bind(titleFontSize + 'px');
-    cursor: pointer; /* Add pointer cursor to icon */
-    margin-left: 8px; /* Add some space between title text and icon */
+.main_title_text span {
+    font-size: v-bind(titleFontSize * 0.9 + 'px');
+    margin-right: 20px; /* Add some space if title is long */
 }
 
-.graph_title ol {
+.dropdown_controls {
+    display: flex;
+    gap: 15px; /* Reduced gap between control groups */
+}
+
+.control_group {
+    position: relative; /* For absolute positioning of the dropdown list */
+    display: flex;
+    align-items: center;
+}
+
+.control_label {
+    margin-right: 5px;
+    font-size: 13px; /* 固定字号 */
+    white-space: nowrap;
+}
+
+.selected_display {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    background-color: rgba(30, 50, 80, 0.85); /* 微调背景色 */
+    padding: 5px 8px; /* 调整内边距以适应13px字体 */
+    border-radius: 4px;
+    border: 1px solid #3a4a6a; /* 微调边框色 */
+    min-width: auto; /* 让内容和padding决定宽度 */
+    justify-content: space-between;
+}
+
+.selected_display span:first-child {
+    font-size: 13px; /* 固定字号 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px; /* 允许稍长一点的文本 */
+}
+
+.control_icon {
+    font-size: 12px; /* 固定字号 */
+    margin-left: 6px;
+}
+
+.control_dropdown {
   position: absolute;
-  top: calc(100% + 5px); /* Position below the title, with a 5px gap */
-  right: 0; /* Align to the right of .graph_title, near the icon */
-  background-color: rgb(41, 52, 65);
-  border: 1px solid #2a3a5a;
+  top: calc(100% + 5px);
+  right: 0;
+  background-color: rgb(35, 45, 60); /* 深一点的背景 */
+  border: 1px solid #4a5a7a; /* 微调边框色 */
   border-radius: 4px;
-  padding: 5px 0;
+  padding: 4px 0;
   list-style: none;
-  min-width: 180px; /* Adjusted min-width for better readability */
-  z-index: 10; /* Ensure dropdown is above other elements like the chart */
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  overflow-y: auto; /* Add scroll for long lists if necessary */
-  max-height: 200px; /* Example max-height */
+  min-width: 160px; /* 调整最小宽度以容纳典型选项 */
+  width: max-content; /* 允许内容撑开，但受max-width限制 */
+  max-width: 240px; /* 防止过长 */
+  z-index: 20;
+  box-shadow: 0 3px 7px rgba(0,0,0,0.3); /* 稍明显的阴影 */
+  overflow-y: auto;
+  max-height: 220px;
 }
 
-.graph_title li {
-  padding: 8px 12px;
-  color: #fff;
+.control_dropdown li {
+  padding: 7px 14px; /* 调整内边距 */
+  color: #ddeeff; /* 亮一点的文字颜色 */
   cursor: pointer;
-  text-indent: 0; /* Reset text-indent if any was inherited */
-  background-color: rgb(41, 52, 65); /* Ensure li has its own background */
+  text-indent: 0;
+  background-color: transparent; /* 使用父级背景色 */
+  font-size: 13px; /* 固定字号 */
+  white-space: nowrap;
 }
 
-.graph_title li:hover {
-  background-color: #2a3a5a; /* Hover effect for list items */
+.control_dropdown li:hover {
+  background-color: rgba(70, 130, 180, 0.3); /* 更明显的hover效果 */
 }
-/* .graph_title > span:first-child 保持原有大小或通过 titleFontSize 控制 */
+
+.control_dropdown li:hover {
+  background-color: #2a3a5a;
+}
+
+/* Ensure chart takes remaining space */
+.graph_chart {
+    flex-grow: 1; /* Allow chart to take available vertical space */
+    min-height: 0; /* Important for flex-grow to work correctly in a flex column */
+}
 </style>
