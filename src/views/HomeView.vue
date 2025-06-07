@@ -90,7 +90,7 @@ const scrollToPage = (pageIndex) => {
   <div class="fullpage-container" @wheel="handleWheelScroll" ref="fullpageContainer">
     <section id="page1" class="page-section">
       <div class="original-layout-wrapper">
-        <div class="header">绿氢微电网平台实时仿真监控系统</div>
+        <div class="header">基于源网荷储一体化新型电力系统的硬件在环仿真实验平台</div>
         <div class="graph" :class="fullScreenStatus.graph ? 'fullscreen' : ''">
           <Graph ref="graph"></Graph>
           <span @click="changeSize('graph')" class="iconfont enlargement"

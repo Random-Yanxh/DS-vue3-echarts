@@ -46,18 +46,37 @@ const updataChart = () => {
                     if (data.status) tooltipText += `<br/>状态: ${data.status}`;
                     
                     // 根据不同类型显示特定信息
-                    if (data.type === 'grid' && data.powerExchange !== undefined) {
-                        tooltipText += `<br/>交换功率: ${data.powerExchange} kW`;
+                    if (data.type === 'grid') {
+                        // 电网状态数据中去掉“交换功率”
                     } else if (data.type === 'bus_ac' && data.voltage !== undefined) {
                         tooltipText += `<br/>电压: ${data.voltage} V`;
-                    } else if ((data.type === 'generation_pv' || data.type === 'generation_wind') && data.currentPower !== undefined) {
-                        tooltipText += `<br/>实时功率: ${data.currentPower} kW`;
+                    } else if (data.type === 'generation_pv') {
+                        if (data.currentPower !== undefined) tooltipText += `<br/>实时功率: ${data.currentPower} kW`;
                         if (data.dailyEnergy !== undefined) tooltipText += `<br/>日发电量: ${data.dailyEnergy} kWh`;
+                        if (data.pm !== undefined) tooltipText += `<br/>最大功率Pm: ${data.pm} W`;
+                        if (data.vmp !== undefined) tooltipText += `<br/>最大功率点电压Vmp: ${data.vmp} V`;
+                        if (data.imp !== undefined) tooltipText += `<br/>最大功率点电流Imp: ${data.imp} A`;
+                    } else if (data.type === 'generation_wind') {
+                        if (data.currentPower !== undefined) tooltipText += `<br/>实时功率: ${data.currentPower} kW`;
+                        if (data.dailyEnergy !== undefined) tooltipText += `<br/>日发电量: ${data.dailyEnergy} kWh`;
+                        if (data.turbineType) tooltipText += `<br/>风机类型: ${data.turbineType}`;
+                        if (data.ratedPower !== undefined) tooltipText += `<br/>额定功率: ${data.ratedPower} kW`;
+                        if (data.maxTipSpeedRatio !== undefined) tooltipText += `<br/>最大叶尖速比: ${data.maxTipSpeedRatio}`;
                     } else if (data.type === 'storage_battery') {
                         if (data.soc !== undefined) tooltipText += `<br/>SOC: ${data.soc}%`;
                         if (data.power !== undefined) tooltipText += `<br/>充放功率: ${data.power} kW`;
+                        if (data.ratedVoltage !== undefined) tooltipText += `<br/>额定电压: ${data.ratedVoltage} V`;
+                        if (data.ratedCapacity !== undefined) tooltipText += `<br/>额定容量: ${data.ratedCapacity} Ah`;
+                        if (data.initialSoc !== undefined) tooltipText += `<br/>初始SOC: ${data.initialSoc}%`;
+                        if (data.responseTime !== undefined) tooltipText += `<br/>响应时间: ${data.responseTime} s`;
                     } else if (data.type === 'load_fixed' && data.currentPower !== undefined) {
                         tooltipText += `<br/>负荷功率: ${data.currentPower} kW`;
+                    } else if (data.type === 'charging_station') {
+                        if (data.currentPower !== undefined) tooltipText += `<br/>实时功率: ${data.currentPower} kW`;
+                        if (data.ratedVoltage !== undefined) tooltipText += `<br/>额定电压: ${data.ratedVoltage} V`;
+                        if (data.ratedCapacity !== undefined) tooltipText += `<br/>额定容量: ${data.ratedCapacity} Ah`;
+                        if (data.initialSoc !== undefined) tooltipText += `<br/>初始SOC: ${data.initialSoc}%`;
+                        if (data.responseTime !== undefined) tooltipText += `<br/>响应时间: ${data.responseTime} s`;
                     }
                     // 可以添加更多通用属性的显示
                     // if (data.voltage !== undefined && data.type !== 'bus_ac') tooltipText += `<br/>电压: ${data.voltage} V`;
