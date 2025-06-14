@@ -8,11 +8,11 @@ import Indicators from '@/components/Indicators/index.vue'
 import Graph from '@/components/Graph/index.vue'
 import Panel from '@/components/Panel/index.vue'
 
-// 导入新的四个组件
-import ProjectInfoCard from '../components/ProjectInfoCard/index.vue'
-import KeyPerformanceIndicators from '../components/KeyPerformanceIndicators/index.vue'
-import BatteryDetailedStatus from '../components/BatteryDetailedStatus/index.vue'
-import EconomicBenefitAnalysis from '../components/EconomicBenefitAnalysis/index.vue'
+// 导入新的组件
+import Frequence from '../components/Frequence/index.vue' 
+import DV from '../components/DV/index.vue' 
+import Hydrogon from '../components/Hydrogon/index.vue' 
+import DA from '../components/DA/index.vue' // Replaced EconomicBenefitAnalysis
 
 
 const fullScreenStatus = reactive({
@@ -129,10 +129,10 @@ const scrollToPage = (pageIndex) => {
     </section>
     <section id="page2" class="page-section">
       <div class="page2-grid-layout">
-        <ProjectInfoCard style="grid-area: projInfo;" />
-        <KeyPerformanceIndicators style="grid-area: kpi;" />
-        <BatteryDetailedStatus style="grid-area: battery;" />
-        <EconomicBenefitAnalysis style="grid-area: econ;" />
+        <Frequence style="grid-area: projInfo;" /> 
+        <DV style="grid-area: kpi;" /> 
+        <Hydrogon style="grid-area: battery;" /> 
+        <DA style="grid-area: econ;" /> <!-- Replaced EconomicBenefitAnalysis -->
       </div>
     </section>
   </div>
