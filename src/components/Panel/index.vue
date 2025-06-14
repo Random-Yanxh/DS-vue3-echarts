@@ -283,7 +283,7 @@ onUnmounted(() => {
 
 <template>
   <div class="panel_container">
-    <h3 class="panel_title">▎关键指标仪表盘</h3>
+    <div class="title">▎关键指标仪表盘</div>
     <div class="panel_content_main">
       <div class="gauge_item" v-for="item in gaugeData" :key="item.id">
         <div class="gauge_name">{{ item.name }}</div>
@@ -320,14 +320,14 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.panel_title {
+.title {
   font-size: clamp(16px, 4vw, 20px);
   color: #64ffda;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
   text-shadow: 0 0 5px #64ffda;
   align-self: flex-start;
-  padding-left: 5px;
-  flex-shrink: 0;
+  padding-left: 10px;
+  margin-top: 10px;
 }
 
 .panel_content_main {

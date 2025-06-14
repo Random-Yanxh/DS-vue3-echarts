@@ -245,6 +245,7 @@ const scrollToPage = (pageIndex) => {
   background-color: transparent;
   color: white;
   font-size: 22px;
+  font-weight: bold; /* 加粗标题 */
   text-align: center;
   line-height: 80px; /* Adjusted to match original if it was based on percentage */
 }

@@ -27,7 +27,7 @@ const moduleOptions = ref([
     { key: 'LoadLog', text: '负荷' },
     { key: 'PELLog', text: '电解槽' },
     { key: 'PVLog', text: '光伏' },
-    { key: 'WindLog', text: '风机' },
+    { key: 'WindLog', text: '风电机组' },
 ]);
 
 const parameterOptions = ref([
@@ -71,8 +71,8 @@ const dataTypesConfig = ref({
   pel_va: { text: '电解槽A相电压', chartName: 'PELLog_Va', yAxisName: 'A相电压 (V)', seriesName: '电解槽Va' },
   pv_p: { text: '光伏有功功率', chartName: 'PVLog_P', yAxisName: '有功功率 (W)', seriesName: '光伏P' },
   pv_va: { text: '光伏A相电压', chartName: 'PVLog_Va', yAxisName: 'A相电压 (V)', seriesName: '光伏Va' },
-  wind_p: { text: '风机有功功率', chartName: 'WindLog_P', yAxisName: '有功功率 (W)', seriesName: '风机P' },
-  wind_va: { text: '风机A相电压', chartName: 'WindLog_Va', yAxisName: 'A相电压 (V)', seriesName: '风机Va' },
+  wind_p: { text: '风电机组有功功率', chartName: 'WindLog_P', yAxisName: '有功功率 (W)', seriesName: '风电机组P' },
+  wind_va: { text: '风电机组A相电压', chartName: 'WindLog_Va', yAxisName: 'A相电压 (V)', seriesName: '风电机组Va' },
   // Add other necessary mappings from file_name_list.txt
 });
 
@@ -133,7 +133,7 @@ const updataChart = () => {
         backgroundColor: 'transparent',
         xAxis: { type: 'category', boundaryGap: false, name: '仿真时间 (seconds)', nameLocation: 'middle', nameGap: 35, splitNumber: currentSplitNumber, axisLabel: { formatter: (v) => typeof v === 'number' ? v.toFixed(3) : v }},
         yAxis: { type: 'value', name: yAxisName.value, nameLocation: 'middle', nameGap: titleFontSize.value * 1.8, axisLabel: { formatter: (v) => parseFloat(v).toFixed(0) }},
-        legend: { left: 20, top: '15%', icon: 'circle', itemWidth: titleFontSize.value, itemHeight: titleFontSize.value, itemGap: titleFontSize.value, textStyle: { fontSize: titleFontSize.value * 0.8 }},
+        legend: { left: 20, top: '7%', icon: 'circle', itemWidth: titleFontSize.value, itemHeight: titleFontSize.value, itemGap: titleFontSize.value, textStyle: { fontSize: titleFontSize.value * 0.8 }},
         tooltip: { trigger: 'axis', formatter: (params) => {
             if (params.length > 0) {
                 const param = params[0];
@@ -147,7 +147,7 @@ const updataChart = () => {
                 } return `${param.seriesName}<br/>${timeValFormatted}: N/A`;
             } return '';
         }},
-        grid: { left: '14%', top: '35%', right: '4%', bottom: '70px' },
+        grid: { left: '14%', top: '18%', right: '4%', bottom: '70px' },
         dataZoom: [{ type: 'slider', show: true, xAxisIndex: [0], start: 0, end: 100, height: 20, bottom: 10, handleIcon: 'path://M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z', handleSize: '80%', dataBackground: { areaStyle: { color: 'rgba(70,130,180,0.3)' }, lineStyle: { opacity: 0.8, color: '#8392A5' }}, fillerColor: 'rgba(135,206,250,0.2)', borderColor: '#ddd', showDetail: false, }, { type: 'inside', xAxisIndex: [0], start: 0, end: 100, }],
         series: seriesConfig.value
     };
@@ -263,9 +263,7 @@ defineExpose({ screenAdapter });
 <template>
     <div class="indicators_container">
         <div class="indicators_title_area">
-            <div class="main_title_text">
-                 <span>▎ {{ chartTitle || '选择数据系列' }}</span>
-            </div>
+            <div class="title">▎ {{ chartTitle || '选择数据系列' }}</div>
             <div class="dropdown_controls">
                 <div class="control_group">
                     <span class="control_label">模块:</span>
@@ -325,9 +323,14 @@ defineExpose({ screenAdapter });
     flex-shrink: 0; 
 }
 
-.main_title_text span {
-    font-size: clamp(16px, 3vw, 18px); 
-    margin-right: 20px; 
+.title {
+  font-size: clamp(16px, 4vw, 20px);
+  color: #64ffda;
+  margin-top: 15px; /* 新增：使标题下移，与左边距比例协调 */
+  margin-bottom: 10px; /* 减小与下方图例的间距 */
+  text-shadow: 0 0 5px #64ffda;
+  align-self: flex-start;
+  padding-left: 5px;
 }
 
 .dropdown_controls {

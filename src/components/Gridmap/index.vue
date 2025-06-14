@@ -10,10 +10,10 @@ let resizeObserver = null;
 const categories = [
     { name: '电网', itemStyle: { color: '#4A90E2' } },          // type 'grid'
     { name: '600V交流母线', itemStyle: { color: '#7ED321' } },    // type 'bus_ac'
-    { name: '光伏发电', itemStyle: { color: '#FFD700' } },    // type 'generation_pv'
-    { name: '风力发电', itemStyle: { color: '#50E3C2' } },    // type 'generation_wind' (新增)
+    { name: '光伏机组', itemStyle: { color: '#FFD700' } },    // type 'generation_pv' Unified: 光伏机组
+    { name: '风电机组', itemStyle: { color: '#50E3C2' } },    // type 'generation_wind' Unified: 风电机组
     { name: '蓄电池', itemStyle: { color: '#FF9800' } },    // type 'storage_battery'
-    { name: '固定负荷', itemStyle: { color: '#F5A623' } },    // type 'load_fixed'
+    { name: '可变负载', itemStyle: { color: '#F5A623' } },    // type 'load_fixed' Unified: 可变负载
     { name: '充电桩', itemStyle: { color: '#BD10E0' } },      // type 'charging_station' (新增)
     { name: '氢储能', itemStyle: { color: '#00BCD4' } },    // type 'storage_hydrogen' (新增)
 ];
@@ -29,14 +29,14 @@ const updataChart = () => {
     // categories 常量已移至外部
     const option = {
         backgroundColor: 'transparent', // 添加此行
-        title: {
-            text: "▎微电网拓扑图",
-            left: 20,
-            top: 20,
-            textStyle: {
-                fontSize: map_chart.value.offsetWidth / 100 * 2.5,
-            }
-        },
+        // title: {
+        //     text: "▎微电网拓扑图",
+        //     left: 20,
+        //     top: 20,
+        //     textStyle: {
+        //         fontSize: map_chart.value.offsetWidth / 100 * 2.5,
+        //     }
+        // },
         tooltip: { // 添加 tooltip 配置
             trigger: 'item',
             formatter: function (params) {
@@ -186,10 +186,10 @@ const getNodeTypeDisplay = (type) => {
     // const category = categories.find(cat => cat.name.toLowerCase().includes(type.replace(/_/g, '').toLowerCase()));
     if (type === 'grid') return '公共电网';
     if (type === 'bus_ac') return '600V交流母线';
-    if (type === 'generation_pv') return '光伏发电';
-    if (type === 'generation_wind') return '风力发电';
+    if (type === 'generation_pv') return '光伏机组';
+    if (type === 'generation_wind') return '风电机组';
     if (type === 'storage_battery') return '蓄电池';
-    if (type === 'load_fixed') return '固定负荷';
+    if (type === 'load_fixed') return '可变负载';
     if (type === 'charging_station') return '充电桩'; // 新增
     if (type === 'storage_hydrogen') return '氢储能系统'; // 新增
     return type; // 默认返回原始类型
@@ -211,6 +211,7 @@ const updataChartData = () => {
                 nodes: allData.value.nodes.map(node => {
                     let categoryIndex = -1;
                     const nodeTypeLower = node.type ? node.type.toLowerCase() : '';
+                    let finalName = node.name; // Start with original name
                     let symbolPath = node.symbol; // 默认使用数据中的symbol
                     let finalSymbolSize = node.symbolSize || baseSymbolSize; // 默认基础大小
                     let itemStyleOverwrite = {}; // 用于覆盖或添加itemStyle属性
@@ -225,19 +226,23 @@ const updataChartData = () => {
                         symbolPath = 'rect';
                         finalSymbolSize = [baseSymbolSize * 3, baseSymbolSize * 0.6]; // 母线长条形
                     } else if (nodeTypeLower === 'generation_pv') {
-                        categoryIndex = 2; // 光伏发电
+                        categoryIndex = 2; // 光伏机组
+                        finalName = '光伏机组'; // Unify name
                         symbolPath = 'image:///icons/gridmap/pv.svg';
                         finalSymbolSize = baseSymbolSize * 1.3;
                     } else if (nodeTypeLower === 'generation_wind') {
-                        categoryIndex = 3; // 风力发电
+                        categoryIndex = 3; // 风电机组
+                        finalName = '风电机组'; // Unify name
                         symbolPath = 'image:///icons/gridmap/windpower.svg';
                         finalSymbolSize = baseSymbolSize * 1.4;
                     } else if (nodeTypeLower === 'storage_battery') {
                         categoryIndex = 4; // 蓄电池
+                        // finalName remains node.name or could be unified if needed
                         symbolPath = 'image:///icons/gridmap/battery.svg';
                         finalSymbolSize = baseSymbolSize * 1.3;
                     } else if (nodeTypeLower === 'load_fixed') {
-                        categoryIndex = 5; // 固定负荷
+                        categoryIndex = 5; // 可变负载
+                        finalName = '可变负载'; // Unify name
                         symbolPath = 'image:///icons/gridmap/load.svg';
                         finalSymbolSize = baseSymbolSize * 1.2;
                     } else if(nodeTypeLower === 'charging_station') {
@@ -264,6 +269,7 @@ const updataChartData = () => {
 
                     return {
                         ...node,
+                        name: finalName, // Use unified name for display on graph
                         category: categoryIndex,
                         symbol: symbolPath,
                         symbolSize: finalSymbolSize,
@@ -381,6 +387,7 @@ defineExpose({
 
 <template>
     <div class="map_container">
+        <div class="title">▎ 微电网拓扑连接图</div>
         <div class="map_chart" ref="map_chart"> {/* 移除 @dblclick="updataChart" */}
 
         </div>
@@ -388,16 +395,30 @@ defineExpose({
 </template>
 
 <style scoped>
+.title {
+  font-size: clamp(16px, 4vw, 20px);
+  color: #64ffda;
+  margin-bottom: 10px;
+  text-shadow: 0 0 5px #64ffda;
+  align-self: flex-start;
+  padding-left: 5px;
+  margin-top: 15px;
+}
 .map_container {
     background-color: rgba(10, 25, 47, 0.75);
     width: 100%;
     height: 100%;
     overflow: hidden;
+    display: flex; /* 新增，为了让标题和图表垂直排列，并且标题可以 align-self */
+    flex-direction: column; /* 新增 */
+    padding: 10px 20px; /* 新增，为标题提供与Graph/Indicators一致的外部间距 */
+    box-sizing: border-box; /* 新增，配合padding */
 }
 
 .map_chart {
     width: 100%;
-    height: 100%;
+    /* height: 100%;  由 flex-grow 控制高度 */
+    flex-grow: 1; /* 新增，让图表占据剩余空间 */
     overflow: hidden;
 }
 </style>
