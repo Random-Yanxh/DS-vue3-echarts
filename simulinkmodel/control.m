@@ -24,9 +24,9 @@ outputFolder = 'data_json';
 
 %% --- 2. 运行Simulink模型 ---
 % 下面的仿真命令已被注释掉，因为我们直接使用工作区中已有的数据
-% fprintf('正在运行Simulink仿真...\n');
-% sim('Microgrid_PV_WG_Bat_EV_j'); 
-% fprintf('仿真完成。\n');
+fprintf('正在运行Simulink仿真...\n');
+sim('Microgrid_PV_WG_Bat_EV_j'); 
+fprintf('仿真完成。\n');
 
 % 检查输出文件夹是否存在，如果不存在则创建
 if ~exist(outputFolder, 'dir')
