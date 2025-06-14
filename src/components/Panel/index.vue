@@ -1,76 +1,279 @@
 <script setup>
-import { ref, onUnmounted, readonly } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
+import { useModeStore } from '@/stores/modeStore';
 
-// Define initial state for reset, wrapped in readonly for safety
-const INITIAL_GAUGE_DATA = readonly([
-  { id: 1, value: 123.45, time: '0.00s', unit: 'kW', name: '蓄电池SOC' },
-  { id: 2, value: 50.00, time: '0.00s', unit: 'Hz', name: '充电桩SOC' },
-  { id: 3, value: 50.0, time: '0.00s', unit: 'Hz', name: '微电网频率' },
-]);
+const modeStore = useModeStore();
+
+const gaugeConfigurations = [
+  { id: 1, name: '蓄电池SOC', unit: '%', fileName: 'BatteryLog_SOC_pct', defaultValue: 0 },
+  { id: 2, name: '充电桩SOC', unit: '%', fileName: 'EVLog_SOC_pct', defaultValue: 0 },
+  { id: 3, name: '电网频率', unit: 'Hz', fileName: 'GridLog_f', defaultValue: 50 },
+];
 
 const isPlaying = ref(false);
-// Initialize gaugeData with a deep copy of the initial state
-const gaugeData = ref(JSON.parse(JSON.stringify(INITIAL_GAUGE_DATA)));
+const panelSimulationClock = ref(0.00); // Independent simulation clock for display
+
+const gaugeData = ref(
+  gaugeConfigurations.map(config => ({
+    ...config,
+    fullData: [],       // To store the DOWNSAMPLED time series
+    currentIndex: 0,    // Index in the DOWNSAMPLED fullData
+    displayValue: config.defaultValue, 
+    displayTime: panelSimulationClock.value.toFixed(2) + 's',   
+  }))
+);
 
 let intervalId = null;
-let simulationTimeCounter = 0;
+const UPDATE_INTERVAL_MS = 200; 
+const SIMULATION_CLOCK_INCREMENT = 0.01; // How much panelSimulationClock advances each interval
+const DOWNSAMPLE_TARGET_STEP = 0.01; // Target time step for downsampled data
 
-const UPDATE_INTERVAL_MS = 200; // Updated to 0.2s 改这里控制跳变速度
-const SIMULATION_TIME_INCREMENT_S = 0.01;
-
-const updateSimulatedData = () => {
-  simulationTimeCounter += SIMULATION_TIME_INCREMENT_S;
-  const newTimeStr = simulationTimeCounter.toFixed(2) + 's';
-
-  gaugeData.value = gaugeData.value.map(item => {
-    let newValue;
-    switch(item.unit) {
-      case 'kW':
-        newValue = parseFloat((100 + Math.random() * 50).toFixed(2));
-        break;
-      case 'Hz':
-        newValue = parseFloat((49.95 + Math.random() * 0.1).toFixed(2));
-        break;
-      case 'V':
-        newValue = parseFloat((218 + Math.random() * 4).toFixed(2));
-        break;
-      default:
-        newValue = parseFloat((Math.random() * 200).toFixed(2));
-    }
-    return {
-      ...item,
-      value: newValue,
-      time: newTimeStr,
-    };
-  });
-};
-
-const handlePlay = () => {
-  if (isPlaying.value) return; // Prevent multiple intervals if already playing
-  isPlaying.value = true;
-  updateSimulatedData(); // Update immediately once on play
-  intervalId = setInterval(updateSimulatedData, UPDATE_INTERVAL_MS);
-};
-
+// --- Control Functions (defined before usage in watch/load) ---
 const handlePause = () => {
-  if (!isPlaying.value) return; // Do nothing if already paused
+  console.log("Panel: handlePause called.");
   isPlaying.value = false;
   if (intervalId) {
     clearInterval(intervalId);
     intervalId = null;
+    console.log("Panel: Animation paused, interval cleared.");
   }
 };
 
 const handleReset = () => {
-  isPlaying.value = false;
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
-  }
-  simulationTimeCounter = 0;
-  // Reset gaugeData to a deep copy of the initial state
-  gaugeData.value = JSON.parse(JSON.stringify(INITIAL_GAUGE_DATA));
+  console.log("Panel: handleReset called.");
+  handlePause(); 
+  panelSimulationClock.value = 0.00;
+  
+  gaugeData.value = gaugeData.value.map(gauge => {
+    const config = gaugeConfigurations.find(c => c.id === gauge.id);
+    let initialValue = config.defaultValue;
+    let initialTime = panelSimulationClock.value.toFixed(2) + 's';
+    let initialIndex = 0;
+
+    if (gauge.fullData && gauge.fullData.length > 0) {
+      // Find the point in DOWNSAMPLED data closest to or at the reset simulation time (0.00)
+      let pointToDisplay = gauge.fullData[0]; 
+      for(let i = 0; i < gauge.fullData.length; i++) {
+          if (gauge.fullData[i].time >= panelSimulationClock.value) {
+              pointToDisplay = gauge.fullData[i];
+              initialIndex = i;
+              break;
+          }
+      }
+      if(pointToDisplay) {
+        initialValue = pointToDisplay.value;
+      }
+    }
+    return {
+      ...gauge, 
+      currentIndex: initialIndex,
+      displayValue: initialValue,
+      displayTime: initialTime,
+    };
+  });
+  console.log("Panel: Gauges reset.", JSON.parse(JSON.stringify(gaugeData.value.map(g => ({id: g.id, name: g.name, dataLength: g.fullData.length, currentIndex: g.currentIndex, displayTime: g.displayTime})))));
 };
+
+const advancePlaybackStep = () => {
+  if (!isPlaying.value) return;
+
+  panelSimulationClock.value = parseFloat((panelSimulationClock.value + SIMULATION_CLOCK_INCREMENT).toFixed(2));
+  const currentSimTime = panelSimulationClock.value;
+  let allGaugesPlaybackCompletedOrNoData = true;
+
+  gaugeData.value = gaugeData.value.map(gauge => {
+    const newGaugeState = { ...gauge };
+    newGaugeState.displayTime = currentSimTime.toFixed(2) + 's';
+
+    if (newGaugeState.fullData && newGaugeState.fullData.length > 0) {
+      let bestMatchIndex = newGaugeState.currentIndex;
+      for (let i = newGaugeState.currentIndex; i < newGaugeState.fullData.length; i++) {
+        if (newGaugeState.fullData[i].time <= currentSimTime) {
+          bestMatchIndex = i;
+        } else {
+          break; 
+        }
+      }
+      
+      const pointToDisplay = newGaugeState.fullData[bestMatchIndex];
+      if (pointToDisplay) {
+        newGaugeState.displayValue = pointToDisplay.value;
+        newGaugeState.currentIndex = bestMatchIndex; // Update current index to the found point
+      }
+
+      // Check if this gauge can play further based on its own data's max time vs panel's clock
+      if (currentSimTime < newGaugeState.fullData[newGaugeState.fullData.length - 1].time) {
+        allGaugesPlaybackCompletedOrNoData = false;
+      }
+    }
+    return newGaugeState;
+  });
+
+  const gaugesWithData = gaugeData.value.filter(g => g.fullData && g.fullData.length > 0);
+  if (gaugesWithData.length > 0 && allGaugesPlaybackCompletedOrNoData) {
+     if (isPlaying.value) {
+        handlePause();
+        console.log("Panel: All gauge data series have been played according to panel simulation time.");
+    }
+  }
+};
+
+const handlePlay = () => {
+  console.log("Panel: handlePlay called. isPlaying:", isPlaying.value);
+  // Log current state for debugging
+  const currentGaugeStatusForLog = gaugeData.value.map(g => ({id: g.id, name: g.name, dataLength: g.fullData.length, currentIndex: g.currentIndex, lastDataTime: (g.fullData && g.fullData.length > 0) ? g.fullData[g.fullData.length-1].time : 'N/A' }));
+  console.log("Panel: Current gaugeData before play:", JSON.parse(JSON.stringify(currentGaugeStatusForLog)));
+  console.log("Panel: Current panelSimulationClock:", panelSimulationClock.value);
+
+  if (isPlaying.value) return;
+
+  const gaugesThatCanPlay = gaugeData.value.filter(g => g.fullData && g.fullData.length > 0);
+  if (gaugesThatCanPlay.length === 0) {
+      console.log("Panel: No data loaded in any gauges to play. Aborting play.");
+      return; 
+  }
+
+  const allDataSeriesFinishedByClock = gaugesThatCanPlay.every(gauge => 
+    panelSimulationClock.value >= gauge.fullData[gauge.fullData.length - 1].time
+  );
+
+  if (allDataSeriesFinishedByClock) {
+    console.log("Panel: Simulation clock indicates all data series finished, resetting before play.");
+    handleReset(); 
+  }
+
+  isPlaying.value = true;
+  console.log("Panel: Animation started. isPlaying:", isPlaying.value);
+  
+  // Immediately update display to reflect current state (especially after a reset or if resuming)
+   gaugeData.value = gaugeData.value.map(gauge => {
+      const newGaugeState = { ...gauge };
+      newGaugeState.displayTime = panelSimulationClock.value.toFixed(2) + 's'; // Use panel clock
+      if (newGaugeState.fullData && newGaugeState.fullData.length > 0) {
+          let bestMatchIndex = 0; // Default to first point if clock is 0 or before first data point
+          for (let i = 0; i < newGaugeState.fullData.length; i++) {
+            if (newGaugeState.fullData[i].time <= panelSimulationClock.value) {
+              bestMatchIndex = i;
+            } else {
+              break;
+            }
+          }
+          const pointToDisplay = newGaugeState.fullData[bestMatchIndex];
+          if(pointToDisplay) {
+            newGaugeState.displayValue = pointToDisplay.value;
+            newGaugeState.currentIndex = bestMatchIndex; // Ensure currentIndex is also set
+          }
+      }
+      return newGaugeState;
+  });
+
+  if (!intervalId) {
+    intervalId = setInterval(advancePlaybackStep, UPDATE_INTERVAL_MS);
+  }
+};
+
+// --- Data Fetching and Watcher ---
+const fetchDataForGauge = async (gaugeConfig, folderPath) => {
+  if (!gaugeConfig.fileName || !folderPath) {
+    console.error(`Panel: Missing fileName or folderPath for gauge ${gaugeConfig.name}`);
+    return [];
+  }
+  const filePath = `${folderPath}${gaugeConfig.fileName}.json`;
+  console.log(`Panel: Attempting to fetch data for ${gaugeConfig.name} from: ${filePath}`);
+  try {
+    const response = await fetch(filePath);
+    if (!response.ok) {
+      console.error(`Panel: HTTP error! Status: ${response.status}, StatusText: ${response.statusText} for ${filePath}`);
+      throw new Error(`HTTP error! status: ${response.status} for ${filePath}`);
+    }
+    const jsonData = await response.json(); // This is the raw, dense data
+    console.log(`Panel: Successfully fetched raw data for ${gaugeConfig.name} from ${filePath}. Items: ${jsonData.length}`);
+    return jsonData; 
+  } catch (error) {
+    console.error(`Panel: Error fetching or parsing data for ${gaugeConfig.name} from ${filePath}:`, error);
+    return []; 
+  }
+};
+
+const loadAllGaugeDataForMode = async () => {
+  const folderPath = modeStore.selectedModeFolderPath;
+  if (!folderPath) {
+    console.warn("Panel: modeStore.selectedModeFolderPath is not available yet for loadAllGaugeDataForMode.");
+    return;
+  }
+
+  handlePause(); 
+  panelSimulationClock.value = 0.00; 
+  console.log(`Panel: Loading all gauge data for mode folder: ${folderPath}`);
+  
+  const newDataPromises = gaugeData.value.map(async (gauge) => {
+    const config = gaugeConfigurations.find(c => c.id === gauge.id);
+    const rawSeriesData = await fetchDataForGauge(config, folderPath);
+    
+    let downsampledData = [];
+    if (rawSeriesData && rawSeriesData.length > 0) {
+        let lastIncludedTime = -Infinity;
+        // Ensure the very first point is included if its time is suitable (e.g. >= 0)
+        if (rawSeriesData[0].time >= 0) { // Or some other sensible start condition
+             downsampledData.push(rawSeriesData[0]);
+             lastIncludedTime = rawSeriesData[0].time;
+        }
+
+        for (let i = 1; i < rawSeriesData.length; i++) {
+            const point = rawSeriesData[i];
+            // Include point if its time is at least DOWNSAMPLE_TARGET_STEP greater than the last included point's time
+            if (point.time >= lastIncludedTime + DOWNSAMPLE_TARGET_STEP) {
+                downsampledData.push(point);
+                lastIncludedTime = point.time;
+            }
+        }
+        // If after filtering, downsampledData is empty but rawSeriesData was not, 
+        // add the last point of raw data to ensure there's at least one point if original had many.
+        // Or, if the first point was the only one, it's already included.
+        // If downsampling results in no points but there was data, take the last original point.
+        if (downsampledData.length === 0 && rawSeriesData.length > 0) {
+            downsampledData.push(rawSeriesData[rawSeriesData.length - 1]);
+        }
+         console.log(`Panel: Gauge ${config.name} raw data ${rawSeriesData.length}, downsampled to ${downsampledData.length} for ~${DOWNSAMPLE_TARGET_STEP}s steps.`);
+    } else {
+        console.log(`Panel: Gauge ${config.name} received no raw data or empty data.`);
+    }
+
+    let initialValue = config.defaultValue;
+    let initialTime = panelSimulationClock.value.toFixed(2) + 's';
+    let initialIndex = 0;
+
+    if (downsampledData.length > 0) {
+        let pointToDisplay = downsampledData[0];
+        for(let i = 0; i < downsampledData.length; i++) {
+            if (downsampledData[i].time >= panelSimulationClock.value) {
+                pointToDisplay = downsampledData[i];
+                initialIndex = i;
+                break;
+            }
+        }
+        if(pointToDisplay) initialValue = pointToDisplay.value;
+    }
+
+    return {
+      ...gauge,
+      fullData: downsampledData, // Store DOWNSAMPLED data
+      currentIndex: initialIndex,
+      displayValue: initialValue,
+      displayTime: initialTime,
+    };
+  });
+  gaugeData.value = await Promise.all(newDataPromises);
+  console.log("Panel: gaugeData after loadAllGaugeDataForMode (dataLength refers to downsampled):", JSON.parse(JSON.stringify(gaugeData.value.map(g => ({id: g.id, name: g.name, dataLength: g.fullData.length, displayTime: g.displayTime})))));
+};
+
+watch(() => modeStore.selectedModeFolderPath, (newPath, oldPath) => {
+    if (newPath && (newPath !== oldPath || gaugeData.value.some(g => g.fullData.length === 0 && g.fileName))) { 
+        console.log(`Panel: Mode folder path changed to: ${newPath} or initial load needed. Reloading all gauge data.`);
+        loadAllGaugeDataForMode();
+    }
+}, { immediate: true });
+
 
 onUnmounted(() => {
   if (intervalId) {
@@ -86,12 +289,12 @@ onUnmounted(() => {
       <div class="gauge_item" v-for="item in gaugeData" :key="item.id">
         <div class="gauge_name">{{ item.name }}</div>
         <div class="gauge_value_area">
-          <span class="gauge_value">{{ item.value.toFixed(2) }}</span>
+          <span class="gauge_value">{{ typeof item.displayValue === 'number' ? item.displayValue.toFixed(2) : item.displayValue }}</span>
           <span class="gauge_unit">{{ item.unit }}</span>
         </div>
         <div class="gauge_time_area">
           <span class="gauge_time_label">仿真时间:</span>
-          <span class="gauge_time">{{ item.time }}</span>
+          <span class="gauge_time">{{ item.displayTime }}</span>
         </div>
       </div>
     </div>
@@ -144,39 +347,40 @@ onUnmounted(() => {
   border: 1px solid #1e3a5f;
   background-color: rgba(19, 47, 76, 0.5);
   border-radius: 8px;
-  padding: 15px;
+  padding: 10px; 
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+  overflow: hidden; 
 }
 
 .gauge_name {
-  font-size: clamp(14px, 2.5vw, 16px);
+  font-size: clamp(13px, 2.2vw, 15px); 
   color: #a8b2d1;
-  margin-bottom: 10px;
+  margin-bottom: 8px; 
 }
 
 .gauge_value_area {
-  margin-bottom: 8px;
+  margin-bottom: 6px; 
 }
 
 .gauge_value {
-  font-size: clamp(24px, 5vw, 32px);
+  font-size: clamp(22px, 4.5vw, 30px); 
   font-weight: bold;
   color: #64ffda;
   margin-right: 5px;
 }
 
 .gauge_unit {
-  font-size: clamp(14px, 2.5vw, 16px);
+  font-size: clamp(13px, 2.2vw, 15px); 
   color: #a8b2d1;
 }
 
 .gauge_time_area {
-  font-size: clamp(12px, 2vw, 14px);
+  font-size: clamp(11px, 1.8vw, 13px); 
   color: #7f8c9b;
 }
 
@@ -192,7 +396,7 @@ onUnmounted(() => {
   align-items: center;
   border-top: 1px solid #1e3a5f;
   margin-top: 10px;
-  gap: 10px; /* Add gap between buttons */
+  gap: 10px; 
 }
 
 .control_button {
@@ -212,15 +416,9 @@ onUnmounted(() => {
 }
 
 .control_button:disabled {
-  background-color: #1c2b4a; /* Darker when disabled */
-  color: #4a5a7a; /* Dimmer text */
+  background-color: #1c2b4a; 
+  color: #4a5a7a; 
   cursor: not-allowed;
   box-shadow: none;
 }
-
-/* Specific active state for play/pause could be handled by :disabled or a class if needed,
-   but the current :disabled logic should suffice.
-   If specific styling for "active pause" or "active play" is needed,
-   we can add classes based on isPlaying.
-*/
 </style>

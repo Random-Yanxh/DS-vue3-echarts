@@ -1,45 +1,20 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { computed } from 'vue'; // ref is no longer needed directly for modes/selectedModeId here
+import { useModeStore } from '@/stores/modeStore';
 
-const modes = ref([
-  { 
-    id: 'island_running', 
-    label: '孤岛运行', 
-    description: '此模式模拟微电网独立于主电网运行的情况，测试其在外部电网故障或不可用时的自主供电能力和稳定性。工况设定：光伏在0.7秒光照强度减小400W/m²，风机在0.5秒风速降低3m/s。' 
-  },
-  { 
-    id: 'island_to_grid', 
-    label: '孤岛到并网', 
-    description: '此模式模拟微电网从独立运行状态平滑切换到与主电网并联运行的过程，检验同步、功率控制等并网关键技术。工况设定：1秒时刻投入并网，仿真总时间为2秒。' 
-  },
-  { 
-    id: 'grid_running', 
-    label: '并网运行', 
-    description: '此模式模拟微电网与主电网并联运行，可以进行电能交换，同时测试其在并网状态下应对内部可再生能源波动的能力。工况设定：光伏在0.7秒光照强度减小400W/m²，风机在0.5秒风速降低3m/s。' 
-  },
-  { 
-    id: 'planned_islanding', // Changed id for clarity
-    label: '计划性脱网', 
-    description: '此模式模拟微电网按预定计划从主电网断开，转为独立运行的过程，例如在电网维护或为应对预期扰动时。工况设定：仿真总时间2秒，在1秒时从并网切换至离网。' 
-  },
-  { 
-    id: 'unplanned_islanding', // Changed id for clarity
-    label: '非计划性脱网', 
-    description: '此模式模拟因主电网发生严重故障（如频率大幅降低）导致微电网紧急、非计划地与主电网解列，并快速切换到孤岛运行以保障本地负荷。工况设定：仿真总时间2秒，规定电网在1秒时频率大幅降低。' 
-  }
-]);
+const modeStore = useModeStore();
 
-const selectedModeId = ref(modes.value[0].id); // Default to the first mode
+// modes and selectedModeId are now primarily managed by the store.
+// We can use computed properties to access them if needed for the template,
+// or directly use store properties in the template.
 
 const currentDescription = computed(() => {
-  const selected = modes.value.find(mode => mode.id === selectedModeId.value);
-  return selected ? selected.description : '请选择一个工况模式。';
+  return modeStore.selectedMode ? modeStore.selectedMode.description : '请选择一个工况模式。';
 });
 
 const selectMode = (modeId) => {
-  selectedModeId.value = modeId;
-  // Later, this will also involve global data transmission
-  console.log("Selected mode:", modeId);
+  modeStore.setSelectedMode(modeId);
+  // console.log("Selected mode via store:", modeId); // Logging can be kept or removed
 };
 </script>
 
@@ -48,10 +23,10 @@ const selectMode = (modeId) => {
         <div class="title">▎运行模式控制</div>
         <div class="modes_button_group">
             <button 
-                v-for="mode in modes" 
+                v-for="mode in modeStore.modesConfig"
                 :key="mode.id"
                 class="mode_button"
-                :class="{ active: selectedModeId === mode.id }"
+                :class="{ active: modeStore.selectedModeId === mode.id }"
                 @click="selectMode(mode.id)">
                 {{ mode.label }}
             </button>

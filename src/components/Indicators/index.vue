@@ -1,22 +1,24 @@
 <script setup>
-import { ref, inject, onMounted, onBeforeUnmount, onBeforeMount, watchEffect } from 'vue';
-// import useRequest from '@/composables/useRequest' // No longer used directly for main data
+import { ref, inject, onMounted, onBeforeUnmount, watch, watchEffect, computed } from 'vue';
+import { useModeStore } from '@/stores/modeStore'; // Import Pinia store
 
-const echarts = inject('echarts')
-const indicators_chart_element = ref(null) // Changed ref name
-let chartInstance = null
+const echarts = inject('echarts');
+const indicators_chart_element = ref(null); // Specific ref name for this component
+let chartInstance = null;
 let resizeObserver = null;
 
-const initChart = () => {
-    if (indicators_chart_element.value) {
-        chartInstance = echarts.init(indicators_chart_element.value, 'chalk')
-    }
-}
+const modeStore = useModeStore(); // Use Pinia store
 
-const allData = ref({}) 
-const chartData = ref([]) 
-const yAxisName = ref('')
-const seriesConfig = ref([])
+const initChart = () => {
+  if (indicators_chart_element.value) {
+    chartInstance = echarts.init(indicators_chart_element.value, 'chalk');
+  }
+};
+
+const allData = ref({ time_series: [] });
+const chartData = ref([]);
+const yAxisName = ref('');
+const seriesConfig = ref([]);
 
 const moduleOptions = ref([
     { key: 'BatteryLog', text: '蓄电池' },
@@ -29,92 +31,74 @@ const moduleOptions = ref([
 ]);
 
 const parameterOptions = ref([
-    { key: 'P', text: 'P--有功功率' },
-    { key: 'Q', text: 'Q--无功功率' },
-    { key: 'Va', text: 'Va--电压' },
-    { key: 'Ia', text: 'Ia--电流' },
+    { key: 'p', text: '有功功率' },
+    { key: 'q', text: '无功功率' },
+    { key: 'va', text: 'A相电压' },
+    { key: 'ia', text: 'A相电流' },
 ]);
 
-const selectedModuleKey = ref('BatteryLog'); // Default module for Indicators, can be different from Graph
-const selectedParameterKey = ref('P');   // Default parameter
+// Default selection for Indicators component
+const selectedModuleKey = ref('BatteryLog'); 
+const selectedParameterKey = ref('p');   
 
-const currentDataType = ref('battery_p'); // Initial value based on default selection
+const currentDataTypeKey = computed(() => {
+  if (!selectedModuleKey.value || !selectedParameterKey.value) return null;
+  const modulePrefix = selectedModuleKey.value.replace('Log', '').toLowerCase();
+  const paramSuffix = selectedParameterKey.value.toLowerCase(); 
+  return `${modulePrefix}_${paramSuffix}`;
+});
 
-const dataTypesConfig = {
-  battery_p: { text: '蓄电池有功功率', chartName: 'graph/BatteryLog_P', yAxisName: '功率 (watts)', seriesName: '蓄电池有功功率' },
-  battery_q: { text: '蓄电池无功功率', chartName: 'graph/BatteryLog_Q', yAxisName: '无功功率 (var)', seriesName: '蓄电池无功功率' },
-  battery_va: { text: '蓄电池电压', chartName: 'graph/BatteryLog_Va', yAxisName: '电压 (V)', seriesName: '蓄电池电压' },
-  battery_ia: { text: '蓄电池电流', chartName: 'graph/BatteryLog_Ia', yAxisName: '电流 (A)', seriesName: '蓄电池电流' },
-  ev_p: { text: '充电桩有功功率', chartName: 'graph/EVLog_P', yAxisName: '功率 (watts)', seriesName: '充电桩有功功率' },
-  ev_q: { text: '充电桩无功功率', chartName: 'graph/EVLog_Q', yAxisName: '无功功率 (var)', seriesName: '充电桩无功功率' },
-  ev_va: { text: '充电桩电压', chartName: 'graph/EVLog_Va', yAxisName: '电压 (V)', seriesName: '充电桩电压' },
-  ev_ia: { text: '充电桩电流', chartName: 'graph/EVLog_Ia', yAxisName: '电流 (A)', seriesName: '充电桩电流' },
-  grid_p: { text: '电网有功功率', chartName: 'graph/GridLog_P', yAxisName: '功率 (watts)', seriesName: '电网有功功率' },
-  grid_q: { text: '电网无功功率', chartName: 'graph/GridLog_Q', yAxisName: '无功功率 (var)', seriesName: '电网无功功率' },
-  grid_va: { text: '电网电压', chartName: 'graph/GridLog_Va', yAxisName: '电压 (V)', seriesName: '电网电压' },
-  grid_ia: { text: '电网电流', chartName: 'graph/GridLog_Ia', yAxisName: '电流 (A)', seriesName: '电网电流' },
-  load_p: { text: '负荷有功功率', chartName: 'graph/LoadLog_P', yAxisName: '功率 (watts)', seriesName: '负荷有功功率' },
-  load_q: { text: '负荷无功功率', chartName: 'graph/LoadLog_Q', yAxisName: '无功功率 (var)', seriesName: '负荷无功功率' },
-  load_va: { text: '负荷电压', chartName: 'graph/LoadLog_Va', yAxisName: '电压 (V)', seriesName: '负荷电压' },
-  load_ia: { text: '负荷电流', chartName: 'graph/LoadLog_Ia', yAxisName: '电流 (A)', seriesName: '负荷电流' },
-  pel_p: { text: '电解槽有功功率', chartName: 'graph/PELLog_P', yAxisName: '功率 (watts)', seriesName: '电解槽有功功率' },
-  pel_q: { text: '电解槽无功功率', chartName: 'graph/PELLog_Q', yAxisName: '无功功率 (var)', seriesName: '电解槽无功功率' },
-  pel_va: { text: '电解槽电压', chartName: 'graph/PELLog_Va', yAxisName: '电压 (V)', seriesName: '电解槽电压' },
-  pel_ia: { text: '电解槽电流', chartName: 'graph/PELLog_Ia', yAxisName: '电流 (A)', seriesName: '电解槽电流' },
-  pv_p: { text: '光伏有功功率', chartName: 'graph/PVLog_P', yAxisName: '功率 (watts)', seriesName: '光伏有功功率' },
-  pv_q: { text: '光伏无功功率', chartName: 'graph/PVLog_Q', yAxisName: '无功功率 (var)', seriesName: '光伏无功功率' },
-  pv_va: { text: '光伏电压', chartName: 'graph/PVLog_Va', yAxisName: '电压 (V)', seriesName: '光伏电压' },
-  pv_ia: { text: '光伏电流', chartName: 'graph/PVLog_Ia', yAxisName: '电流 (A)', seriesName: '光伏电流' },
-  wind_p: { text: '风机有功功率', chartName: 'graph/WindLog_P', yAxisName: '功率 (watts)', seriesName: '风机有功功率' },
-  wind_q: { text: '风机无功功率', chartName: 'graph/WindLog_Q', yAxisName: '无功功率 (var)', seriesName: '风机无功功率' },
-  wind_va: { text: '风机电压', chartName: 'graph/WindLog_Va', yAxisName: '电压 (V)', seriesName: '风机电压' },
-  wind_ia: { text: '风机电流', chartName: 'graph/WindLog_Ia', yAxisName: '电流 (A)', seriesName: '风机电流' },
-};
+// Updated dataTypesConfig - Ensure this is comprehensive and accurate based on file_name_list.txt
+const dataTypesConfig = ref({
+  battery_p: { text: '电池输出有功功率', chartName: 'BatteryLog_P_out_W', yAxisName: '有功功率 (W)', seriesName: '电池输出P' },
+  battery_q: { text: '电池输出无功功率', chartName: 'BatteryLog_Q_out_VAR', yAxisName: '无功功率 (VAR)', seriesName: '电池输出Q' },
+  battery_va: { text: '电池A相电压', chartName: 'BatteryLog_Va', yAxisName: 'A相电压 (V)', seriesName: '电池Va' },
+  battery_ia: { text: '电池A相电流', chartName: 'BatteryLog_Ia', yAxisName: 'A相电流 (A)', seriesName: '电池Ia' },
+  
+  ev_p: { text: '充电桩有功功率', chartName: 'EVLog_P_W', yAxisName: '有功功率 (W)', seriesName: '充电桩P' },
+  ev_q: { text: '充电桩无功功率', chartName: 'EVLog_Q_VAR', yAxisName: '无功功率 (VAR)', seriesName: '充电桩Q' },
+  ev_va: { text: '充电桩A相电压', chartName: 'EVLog_Va', yAxisName: 'A相电压 (V)', seriesName: '充电桩Va' },
+  ev_ia: { text: '充电桩A相电流', chartName: 'EVLog_Ia', yAxisName: 'A相电流 (A)', seriesName: '充电桩Ia' },
 
-const getChartData = async (res) => {
-    console.log('Indicators: getChartData - Received raw response for type:', currentDataType.value);
-    let parsedRes = res;
-    if (typeof res === 'string') {
-        try {
-            parsedRes = JSON.parse(res);
-        } catch (error) {
-            console.error('Indicators: getChartData - Failed to parse response string:', error, res);
-            allData.value = { time_series: [] };
-            handleChartData(); 
-            updataChart();
-            updataChartData();
-            return;
-        }
-    }
-    console.log('Indicators: getChartData - Parsed response:', parsedRes);
+  grid_p: { text: '电网交换有功功率', chartName: 'GridLog_P', yAxisName: '有功功率 (W)', seriesName: '电网P' },
+  grid_q: { text: '电网交换无功功率', chartName: 'GridLog_Q', yAxisName: '无功功率 (VAR)', seriesName: '电网Q' },
+  grid_va: { text: '电网A相电压', chartName: 'GridLog_Va', yAxisName: 'A相电压 (V)', seriesName: '电网Va' },
+  grid_ia: { text: '电网A相电流', chartName: 'GridLog_Ia', yAxisName: 'A相电流 (A)', seriesName: '电网Ia' },
+  
+  load_p: { text: '负荷有功功率', chartName: 'LoadLog_P', yAxisName: '有功功率 (W)', seriesName: '负荷P' },
+  load_va: { text: '负荷A相电压', chartName: 'LoadLog_Va', yAxisName: 'A相电压 (V)', seriesName: '负荷Va' },
+  pel_p: { text: '电解槽有功功率', chartName: 'PELLog_P_W', yAxisName: '有功功率 (W)', seriesName: '电解槽P' },
+  pel_va: { text: '电解槽A相电压', chartName: 'PELLog_Va', yAxisName: 'A相电压 (V)', seriesName: '电解槽Va' },
+  pv_p: { text: '光伏有功功率', chartName: 'PVLog_P', yAxisName: '有功功率 (W)', seriesName: '光伏P' },
+  pv_va: { text: '光伏A相电压', chartName: 'PVLog_Va', yAxisName: 'A相电压 (V)', seriesName: '光伏Va' },
+  wind_p: { text: '风机有功功率', chartName: 'WindLog_P', yAxisName: '有功功率 (W)', seriesName: '风机P' },
+  wind_va: { text: '风机A相电压', chartName: 'WindLog_Va', yAxisName: 'A相电压 (V)', seriesName: '风机Va' },
+  // Add other necessary mappings from file_name_list.txt
+});
 
-    if (Array.isArray(parsedRes)) {
-        allData.value = { time_series: parsedRes };
-    } else if (typeof parsedRes === 'object' && parsedRes !== null) {
-        allData.value = parsedRes; 
-        if (!allData.value.time_series) {
-             console.warn('Indicators: getChartData - Received object response does not have a time_series property.', parsedRes);
-             allData.value.time_series = [];
-        }
+const getChartData = (jsonDataArray) => {
+    console.log('Indicators: getChartData - Received data array for type:', currentDataTypeKey.value, jsonDataArray);
+    if (Array.isArray(jsonDataArray)) {
+        allData.value = { time_series: jsonDataArray };
     } else {
-        console.error('Indicators: getChartData - Parsed response is not an array or recognized object:', parsedRes);
+        console.error('Indicators: getChartData - Expected jsonDataArray to be an array, got:', jsonDataArray);
         allData.value = { time_series: [] };
     }
     handleChartData();
     updataChart();
     updataChartData();
-}
+};
 
 const handleChartData = () => {
-    console.log('Indicators: handleChartData - currentDataType:', currentDataType.value);
     if (allData.value && Array.isArray(allData.value.time_series)) {
         if (allData.value.time_series.length === 0) {
             chartData.value = [];
         } else {
             const times = allData.value.time_series.map(item => item.time);
             const values = allData.value.time_series.map(item => item.value);
-            if (dataTypesConfig[currentDataType.value]) {
-                const seriesName = dataTypesConfig[currentDataType.value].seriesName;
+            const config = dataTypesConfig.value[currentDataTypeKey.value];
+            if (config) {
+                const seriesName = config.seriesName;
                 chartData.value = [
                     ['仿真时间', ...times],
                     [seriesName, ...values]
@@ -126,202 +110,117 @@ const handleChartData = () => {
     } else {
         chartData.value = [];
     }
-}
+};
 
-const titleFontSize = ref(0) 
+const titleFontSize = ref(0);
+const chartTitle = ref(''); // Title for this chart instance
 
 const updataChart = () => {
-    if (!dataTypesConfig[currentDataType.value]) {
-        console.error(`Indicators: updataChart - Invalid currentDataType: ${currentDataType.value}`);
+    const config = dataTypesConfig.value[currentDataTypeKey.value];
+    if (!config) {
+        console.error(`Indicators: updataChart - Invalid currentDataTypeKey: ${currentDataTypeKey.value}`);
+        if(chartInstance) chartInstance.clear();
         return;
     }
-    yAxisName.value = dataTypesConfig[currentDataType.value].yAxisName;
-    seriesConfig.value = [{ name: dataTypesConfig[currentDataType.value].seriesName, type: 'line', seriesLayoutBy: 'row', areaStyle: { opacity: 0.1 } }];
+    yAxisName.value = config.yAxisName;
+    seriesConfig.value = [{ name: config.seriesName, type: 'line', seriesLayoutBy: 'row', areaStyle: { opacity: 0.1 } }];
 
     const chartWidth = indicators_chart_element.value ? indicators_chart_element.value.offsetWidth : 0;
     const wideLayoutThreshold = 900; 
     const currentSplitNumber = chartWidth > wideLayoutThreshold ? 15 : 8;
 
-    const option = {
+    const option = { /* ... ECharts option setup (same as Graph.vue) ... */
         backgroundColor: 'transparent',
-        xAxis: {
-            type: 'category',
-            boundaryGap: false,
-            name: '仿真时间 (seconds)',
-            nameLocation: 'middle',
-            nameGap: 35,
-            splitNumber: currentSplitNumber,
-            axisLabel: { 
-                formatter: function (value) {
-                    return typeof value === 'number' ? parseFloat(value).toFixed(3) : value;
-                },
-            }
-        },
-        yAxis: {
-            type: 'value',
-            name: yAxisName.value,
-            nameLocation: 'middle',
-            nameGap: titleFontSize.value * 1.8,
-            axisLabel: {
-                formatter: function (value) {
-                    return parseFloat(value).toFixed(0);
-                }
-            },
-        },
-        legend: {
-            left: 20,
-            top: '15%',
-            icon: 'circle',
-            itemWidth: titleFontSize.value,
-            itemHeight: titleFontSize.value,
-            itemGap: titleFontSize.value,
-            textStyle: {
-                fontSize: titleFontSize.value * 0.8,
-            },
-        },
-        tooltip: {
-            trigger: 'axis',
-            formatter: function (params) {
-                if (params.length > 0) {
-                    const param = params[0];
-                    const timeValRaw = param.axisValueLabel || param.name; 
-                    let timeValFormatted = timeValRaw; 
-                    if (typeof timeValRaw === 'number') {
-                        timeValFormatted = timeValRaw.toFixed(5);
-                    } else if (typeof timeValRaw === 'string') {
-                        const parsedNum = parseFloat(timeValRaw);
-                        if (!isNaN(parsedNum)) {
-                            timeValFormatted = parsedNum.toFixed(5);
-                        }
-                    }
-                    let val = null;
-                    if (Array.isArray(param.value) && param.value.length > 1) {
-                        val = param.value[1];
-                    } else if (Array.isArray(param.data) && param.data.length > 1) {
-                        val = param.data[1];
-                    }
-                    if (val !== undefined && val !== null && dataTypesConfig[currentDataType.value]) {
-                        const config = dataTypesConfig[currentDataType.value];
-                        const unit = config.yAxisName.includes('(') ? config.yAxisName.match(/\(([^)]+)\)/)[1] : '';
-                        return `${param.seriesName}<br/>${timeValFormatted}: ${parseFloat(val).toFixed(3)} ${unit}`;
-                    }
-                    return `${param.seriesName}<br/>${timeValFormatted}: N/A`;
-                }
-                return '';
-            }
-        },
-        grid: {
-            left: '14%', 
-            top: '35%',
-            right: '4%',
-            bottom: '70px', 
-        },
-        dataZoom: [
-            {
-                type: 'slider',
-                show: true, 
-                xAxisIndex: [0],
-                start: 0,
-                end: 100,
-                height: 20,
-                bottom: 10, 
-                handleIcon: 'path://M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
-                handleSize: '80%',
-                dataBackground: {
-                    areaStyle: { color: 'rgba(70,130,180,0.3)' },
-                    lineStyle: { opacity: 0.8, color: '#8392A5' }
-                },
-                fillerColor: 'rgba(135,206,250,0.2)', 
-                borderColor: '#ddd',
-                showDetail: false,
-            },
-            {
-                type: 'inside', 
-                xAxisIndex: [0], 
-                start: 0,
-                end: 100,
-            }
-        ],
+        xAxis: { type: 'category', boundaryGap: false, name: '仿真时间 (seconds)', nameLocation: 'middle', nameGap: 35, splitNumber: currentSplitNumber, axisLabel: { formatter: (v) => typeof v === 'number' ? v.toFixed(3) : v }},
+        yAxis: { type: 'value', name: yAxisName.value, nameLocation: 'middle', nameGap: titleFontSize.value * 1.8, axisLabel: { formatter: (v) => parseFloat(v).toFixed(0) }},
+        legend: { left: 20, top: '15%', icon: 'circle', itemWidth: titleFontSize.value, itemHeight: titleFontSize.value, itemGap: titleFontSize.value, textStyle: { fontSize: titleFontSize.value * 0.8 }},
+        tooltip: { trigger: 'axis', formatter: (params) => {
+            if (params.length > 0) {
+                const param = params[0];
+                const timeValRaw = param.axisValueLabel || param.name; 
+                let timeValFormatted = typeof timeValRaw === 'number' ? timeValRaw.toFixed(5) : String(timeValRaw);
+                let val = (Array.isArray(param.value) && param.value.length > 1) ? param.value[1] : ((Array.isArray(param.data) && param.data.length > 1) ? param.data[1] : null);
+                const currentConfig = dataTypesConfig.value[currentDataTypeKey.value];
+                if (val !== null && currentConfig) {
+                    const unit = currentConfig.yAxisName.includes('(') ? currentConfig.yAxisName.match(/\(([^)]+)\)/)[1] : '';
+                    return `${param.seriesName}<br/>${timeValFormatted}: ${parseFloat(val).toFixed(3)} ${unit}`;
+                } return `${param.seriesName}<br/>${timeValFormatted}: N/A`;
+            } return '';
+        }},
+        grid: { left: '14%', top: '35%', right: '4%', bottom: '70px' },
+        dataZoom: [{ type: 'slider', show: true, xAxisIndex: [0], start: 0, end: 100, height: 20, bottom: 10, handleIcon: 'path://M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z', handleSize: '80%', dataBackground: { areaStyle: { color: 'rgba(70,130,180,0.3)' }, lineStyle: { opacity: 0.8, color: '#8392A5' }}, fillerColor: 'rgba(135,206,250,0.2)', borderColor: '#ddd', showDetail: false, }, { type: 'inside', xAxisIndex: [0], start: 0, end: 100, }],
         series: seriesConfig.value
-    }
-    if (chartInstance) chartInstance.setOption(option)
-}
+    };
+    if (chartInstance) chartInstance.setOption(option, true);
+};
 const updataChartData = () => {
-    const option = {
-        dataset: {
-            source: chartData.value,
-        },
+    if (chartInstance) {
+        chartInstance.setOption({ dataset: { source: chartData.value } });
     }
-    if (chartInstance) chartInstance.setOption(option)
-}
+};
 
 const openModuleOl = ref(false);
 const openParameterOl = ref(false);
-const chartTitle = ref(''); // Changed from graphTitle
 
-const moduleKeyToPrefix = (moduleKey) => {
-    if (!moduleKey) return '';
-    return moduleKey.replace('Log', '').toLowerCase();
-};
-
-const updateAndFetchData = () => {
-    if (!selectedModuleKey.value || !selectedParameterKey.value) {
+const fetchDataForCurrentSelection = async () => {
+    if (!currentDataTypeKey.value) {
+        console.warn("Indicators: No valid data type key selected.");
+        allData.value = { time_series: [] };
+        handleChartData();
+        updataChart();
+        updataChartData();
         return;
     }
-    const modulePrefix = moduleKeyToPrefix(selectedModuleKey.value);
-    const paramSuffix = selectedParameterKey.value.toLowerCase();
-    const newDataTypeKey = `${modulePrefix}_${paramSuffix}`;
-
-    if (dataTypesConfig[newDataTypeKey]) {
-        currentDataType.value = newDataTypeKey;
-        const currentConfig = dataTypesConfig[newDataTypeKey];
-        socket.send({
-            action: 'getData',
-            socketType: 'graphData', // Assuming Indicators uses the same socketType
-            chartName: currentConfig.chartName,
-            value: ''
-        });
-    } else {
-        chartData.value = []; 
-        // chartTitle.value = "数据未配置"; // Title updated by watchEffect
-        if (chartInstance) {
-            updataChart(); 
+    const config = dataTypesConfig.value[currentDataTypeKey.value];
+    if (config && modeStore.selectedModeFolderPath) {
+        const filePath = `${modeStore.selectedModeFolderPath}${config.chartName}.json`;
+        console.log(`Indicators: Fetching data from: ${filePath}`);
+        try {
+            const response = await fetch(filePath);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} for ${filePath}`);
+            }
+            const jsonDataArray = await response.json();
+            getChartData(jsonDataArray);
+        } catch (error) {
+            console.error(`Indicators: Error fetching or parsing data from ${filePath}:`, error);
+            allData.value = { time_series: [] };
+            handleChartData();
+            updataChart();
             updataChartData();
+            chartTitle.value = `${config.text} (数据加载失败)`;
         }
+    } else {
+        console.warn(`Indicators: No configuration for ${currentDataTypeKey.value} or folderPath is missing.`);
+        allData.value = { time_series: [] };
+        handleChartData();
+        updataChart();
+        updataChartData();
+        chartTitle.value = "数据未配置或路径错误";
     }
 };
 
 const handleModuleChange = (module) => {
     selectedModuleKey.value = module.key;
-    openModuleOl.value = false; 
-    updateAndFetchData(); 
+    openModuleOl.value = false;
 };
 
 const handleParameterChange = (parameter) => {
     selectedParameterKey.value = parameter.key;
-    openParameterOl.value = false; 
-    updateAndFetchData(); 
+    openParameterOl.value = false;
 };
 
 watchEffect(() => {
-    const modulePrefix = moduleKeyToPrefix(selectedModuleKey.value);
-    const paramSuffix = selectedParameterKey.value ? selectedParameterKey.value.toLowerCase() : '';
-    
-    if (modulePrefix && paramSuffix) {
-        const key = `${modulePrefix}_${paramSuffix}`;
-        if (dataTypesConfig[key]) {
-            chartTitle.value = dataTypesConfig[key].text;
-        } else {
-            const moduleText = moduleOptions.value.find(m => m.key === selectedModuleKey.value)?.text || selectedModuleKey.value;
-            const paramTextObj = parameterOptions.value.find(p => p.key === selectedParameterKey.value);
-            const paramDisplayText = paramTextObj ? paramTextObj.text.substring(paramTextObj.text.indexOf('--') + 2) : selectedParameterKey.value;
-            chartTitle.value = `${moduleText} - ${paramDisplayText} (未配置)`;
-        }
+    const config = dataTypesConfig.value[currentDataTypeKey.value];
+    if (config) {
+        chartTitle.value = config.text;
     } else {
-         const moduleText = moduleOptions.value.find(m => m.key === selectedModuleKey.value)?.text || '选择模块';
-         const paramTextObj = parameterOptions.value.find(p => p.key === selectedParameterKey.value);
-         const paramDisplayText = paramTextObj ? paramTextObj.text.substring(paramTextObj.text.indexOf('--') + 2) : '选择参数';
-         chartTitle.value = `${moduleText} - ${paramDisplayText}`;
+        const moduleText = moduleOptions.value.find(m => m.key === selectedModuleKey.value)?.text || selectedModuleKey.value || 'N/A';
+        const paramText = parameterOptions.value.find(p => p.key === selectedParameterKey.value)?.text || selectedParameterKey.value || 'N/A';
+        chartTitle.value = `${moduleText} - ${paramText} (未配置)`;
+    }
+    if (currentDataTypeKey.value && modeStore.selectedModeFolderPath) {
+         fetchDataForCurrentSelection();
     }
 });
 
@@ -329,43 +228,22 @@ const screenAdapter = () => {
     if (!indicators_chart_element.value || !chartInstance) return;
     const chartWidth = indicators_chart_element.value.offsetWidth;
     titleFontSize.value = chartWidth / 100 * 3.6; 
-    updataChart()
-    chartInstance.resize()
-}
+    updataChart();
+    chartInstance.resize();
+};
 
-const socket = inject('socket')
-
-onBeforeMount(() => {
-    socket.registerCallBack('graphData', getChartData) // Assuming Indicators uses the same callback type
-})
 onMounted(() => {
-    initChart()
-    // Initial data fetch based on default selectedModuleKey and selectedParameterKey
-    if (dataTypesConfig[currentDataType.value]) {
-         socket.send({
-            action: 'getData',
-            socketType: 'graphData',
-            chartName: dataTypesConfig[currentDataType.value].chartName,
-            value: ''
-        });
-    } else { // Fallback if initial currentDataType is somehow invalid
-        updateAndFetchData(); // This will also handle the "not configured" case
-    }
-   
-    screenAdapter() 
-    window.addEventListener('resize', screenAdapter)
-
+    initChart();
+    screenAdapter();
+    window.addEventListener('resize', screenAdapter);
     if (indicators_chart_element.value) {
-        resizeObserver = new ResizeObserver(() => {
-            screenAdapter();
-        });
+        resizeObserver = new ResizeObserver(screenAdapter);
         resizeObserver.observe(indicators_chart_element.value);
     }
-})
-onBeforeUnmount(() => {
-    window.removeEventListener('resize', screenAdapter)
-    socket.unRegisterCallBack('graphData') 
+});
 
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', screenAdapter);
     if (resizeObserver && indicators_chart_element.value) {
         resizeObserver.unobserve(indicators_chart_element.value);
     }
@@ -377,18 +255,16 @@ onBeforeUnmount(() => {
         chartInstance.dispose();
         chartInstance = null;
     }
-})
-defineExpose({
-    screenAdapter
-})
+});
+
+defineExpose({ screenAdapter });
 </script>
 
 <template>
-    <div class="indicators_container"> <!-- Changed class from graph_container -->
-        <div class="indicators_title_area"> <!-- Changed class from graph_title_area -->
+    <div class="indicators_container">
+        <div class="indicators_title_area">
             <div class="main_title_text">
-                <!-- Display dynamic title, or a static one if preferred -->
-                <span>▎ {{ chartTitle || '关键指标图表' }}</span> 
+                 <span>▎ {{ chartTitle || '选择数据系列' }}</span>
             </div>
             <div class="dropdown_controls">
                 <div class="control_group">
@@ -417,12 +293,12 @@ defineExpose({
                 </div>
             </div>
         </div>
-        <div class="indicators_chart" ref="indicators_chart_element"></div> <!-- Changed class and ref -->
+        <div class="indicators_chart" ref="indicators_chart_element"></div>
     </div>
 </template>
 
 <style scoped>
-/* Styles copied from Graph.vue, with s/graph_/indicators_/ for top-level classes */
+/* Styles are identical to Graph.vue, but with 'indicators_' prefix for top-level classes */
 .indicators_chart,
 .indicators_container {
     width: 100%;
@@ -450,8 +326,7 @@ defineExpose({
 }
 
 .main_title_text span {
-    /* font-size: v-bind(titleFontSize * 0.9 + 'px'); */ /* Using chartTitle directly now */
-    font-size: clamp(16px, 3vw, 18px); /* Example static size if not binding */
+    font-size: clamp(16px, 3vw, 18px); 
     margin-right: 20px; 
 }
 
@@ -526,7 +401,7 @@ defineExpose({
 }
 
 .control_dropdown li:hover {
-  background-color: #2a3a5a; /* Consistent hover */
+  background-color: #2a3a5a;
 }
 
 .indicators_chart {
