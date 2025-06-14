@@ -1,38 +1,47 @@
-# 项目指南：Frontend/HM-vue3-echarts
+# 项目指南：基于源网荷储一体化的可视化仿真平台前端
 
-本文档旨在帮助开发人员理解 `Frontend/HM-vue3-echarts` 项目的结构、关键组件以及数据流，以便进行后续的开发和维护。
+本文档旨在帮助开发人员理解本项目（Vue 3 + Vite + ECharts + Pinia）的结构、核心架构、数据流以及关键组件，以便进行后续的开发和维护。
 
 ## 1. 项目概述
 
--   **项目名称**: `vision` (根据 `package.json`)，但功能上是一个绿氢微电网平台实时仿真监控系统。
--   **技术栈**:
-    -   前端: Vue 3 (v3.2.45), Vite (v4.0.0), ECharts (v5.4.1), Pinia (v2.0.28) (状态管理), Vue Router (v4.1.6)。
-    -   CSS: `normalize.css` 用于样式重置，自定义全局样式及图标字体。
-    -   后端 (数据模拟): Koa.js (v2.14.1), `ws` (v8.12.1) (WebSocket 服务)。
--   **主要功能**: 提供一个可视化的界面，用于实时监控和仿真微电网平台的各项数据指标和状态，如图表、地图、KPI 等。数据主要通过 WebSocket 进行实时更新，部分可能通过 HTTP API 获取。
+-   **项目核心功能**: 提供一个可视化的前端界面，用于展示和模拟不同工况下微电网系统的各项数据指标和运行状态。
+-   **主要技术栈**:
+    -   **前端**: Vue 3, Vite, Pinia (用于状态管理), Vue Router, ECharts (用于数据可视化)。
+    -   **CSS**: `normalize.css` 及自定义样式。
+-   **当前数据交互模式**:
+    -   **工况数据**: 主要从位于 `public/data/` 目录下的静态 JSON 文件中获取。每个预设的运行工况对应一个子文件夹，内含该工况下的各类设备和系统日志数据。
+    -   **状态同步**: 通过 Pinia store ([`src/stores/modeStore.js`](src/stores/modeStore.js)) 全局管理和同步当前选定的运行工况模式。
+    -   **数据加载**: 各图表和仪表盘组件监听工况模式的改变，动态构建文件路径，并使用 `fetch` API 异步加载对应的 JSON 数据。
+    -   **WebSocket**: 项目中存在 [`src/utils/socket_service.js`](src/utils/socket_service.js)，但当前核心的图表数据加载已不依赖此 WebSocket 服务。其可能用于项目中其他实时通信功能（如有）。
 
 ## 2. 项目启动与构建
 
--   **环境要求**: Node.js
+-   **环境要求**: Node.js (建议最新 LTS 版本), npm 或 yarn。
 -   **依赖安装**:
     ```bash
     npm install
     ```
+    或
+    ```bash
+    yarn install
+    ```
 -   **启动开发环境**:
-    -   启动前端 Vite 开发服务器 (通常热更新，端口默认为 Vite 配置，如 5173):
+    -   启动前端 Vite 开发服务器 (端口通常为 `5173` 或 Vite 自动选择的其他端口):
         ```bash
         npm run dev
         ```
-    -   启动后端 Koa 数据模拟服务 (HTTP API 在 7777 端口, WebSocket 在 9998 端口，使用 nodemon 支持热重载):
+    -   前端应用启动后，即可在浏览器中访问。
+-   **（可选）启动后端 Koa 服务**:
+    -   项目包含一个位于 `koa/` 目录的 Koa.js 后端服务。
         ```bash
         npm run server
         ```
-    *注意：前端和后端服务需要同时运行。*
+    -   **注意**: 根据当前的架构调整，核心的图表和仪表盘数据已改为从 `public/data/` 目录下的静态 JSON 文件加载，不再强制依赖此 Koa 服务进行数据获取。此后端服务可能用于项目中其他 API 接口或辅助功能。
 -   **生产环境构建**:
     ```bash
     npm run build
     ```
-    构建产物会输出到 `dist` 目录 (Vite 默认)。
+    构建产物将输出到 `dist` 目录。
 -   **预览生产构建**:
     ```bash
     npm run preview
@@ -41,123 +50,102 @@
 ## 3. 目录结构详解
 
 ```
-Frontend/HM-vue3-echarts/
-├── koa/                      # 后端数据模拟服务 (Koa.js)
-│   ├── app.js                # Koa 应用主入口，启动 HTTP 和 WebSocket 服务
-│   ├── web_socket_service.js # WebSocket 服务端逻辑
-│   ├── data/                 # 存放各类模拟数据的 JSON 文件 (按图表或功能命名)
-│   │   ├── aichat.json
-│   │   ├── epie.json
-│   │   ├── graph/
-│   │   │   ├── wp.json
-│   │   │   └── wq.json
-│   │   └── ... (其他数据文件)
-│   ├── middleware/           # Koa 中间件
-│   │   ├── koa_response_data.js    # 处理 HTTP API 数据响应
-│   │   ├── koa_response_duration.js # 计算响应时长
-│   │   └── koa_response_header.js   # 设置响应头
-│   └── utils/                # Koa 服务端工具
-│       └── file_utils.js       # 读取文件内容的工具
-├── public/                   # Vite public 目录，此中资源会直接复制到构建输出根目录
+├── public/
+│   ├── data/                     # 存放所有工况模式的静态JSON数据
+│   │   ├── MG_Islanded_Mode_json/  # 示例：孤岛运行模式数据文件夹
+│   │   │   ├── BatteryLog_SOC_pct.json
+│   │   │   └── ... (其他数据文件)
+│   │   ├── MG_IslandToGrid_Switch_json/
+│   │   ├── MG_GridConnected_Mode_json/
+│   │   ├── MG_GridToIsland_Mode_json/
+│   │   └── MG_GridToIsland_withoutplan_Mode_json/
 │   └── favicon.ico
-├── src/                      # 前端核心源代码 (Vue 3)
-│   ├── App.vue               # Vue 应用根组件
-│   ├── main.js               # Vue 应用初始化入口 (实例化 Vue, Pinia, Router, SocketService)
-│   ├── assets/               # 静态资源 (图片, CSS, 字体, ECharts 主题, 地图 GeoJSON)
-│   │   ├── font/             # 图标字体 (iconfont)
-│   │   ├── map/              # 地图 GeoJSON 文件 (中国及各省)
-│   │   └── theme/            # ECharts 主题文件 (chalk.js, vintage.js, etc.)
-│   ├── components/           # 可复用的 Vue 组件 (如 Graph, Gridmap, EPie 等)
-│   ├── composables/          # Vue 3 Composition API 可组合函数
-│   │   └── useRequest.js     # 封装的 HTTP fetch 请求
-│   ├── router/               # Vue Router 配置
-│   │   └── index.js          # 路由定义
-│   ├── stores/               # Pinia 状态管理
-│   │   └── counter.js        # 示例 store (需确认实际业务 store)
-│   ├── utils/                # 前端通用工具函数
-│   │   ├── map_utils.js      # 地图相关工具
-│   │   └── socket_service.js # 前端 WebSocket 客户端服务封装
-│   └── views/                # 页面级视图组件 (路由的目标)
-│       ├── HomeView.vue      # 主仪表盘视图
-│       └── ... (其他视图如 GraphView, MapView 等)
-├── .gitignore
-├── index.html                # Vite 项目入口 HTML
-├── package.json              # 项目依赖和脚本
-├── README.md                 # 项目说明文档
-└── vite.config.js            # Vite 构建配置文件
+├── src/
+│   ├── App.vue                   # Vue 应用根组件
+│   ├── main.js                   # Vue 应用初始化入口 (实例化 Vue, Pinia, Router)
+│   ├── assets/                   # 静态资源 (图片, CSS, 字体, ECharts 主题)
+│   ├── components/               # 可复用的 Vue 组件
+│   │   ├── Control/index.vue     # 工况模式选择控制面板
+│   │   ├── Graph/index.vue       # 通用 ECharts 折线图组件
+│   │   ├── Indicators/index.vue  # (已改造为) ECharts 折线图组件
+│   │   ├── Panel/index.vue       # 包含三个动态仪表盘的面板组件
+│   │   ├── Gridmap/index.vue     # 微电网拓扑图组件
+│   │   └── ... (其他组件)
+│   ├── router/                   # Vue Router 配置
+│   │   └── index.js
+│   ├── stores/                   # Pinia 状态管理
+│   │   └── modeStore.js          # 核心：管理当前运行工况模式
+│   ├── utils/                    # 前端通用工具函数
+│   │   └── socket_service.js     # WebSocket 服务封装 (当前图表数据不依赖)
+│   └── views/                    # 页面级视图组件
+│       └── HomeView.vue          # 主仪表盘视图
+├── file_name_list.txt            # 数据文件名及其含义的对照表 (重要参考)
+├── package.json                  # 项目依赖和脚本
+└── vite.config.js                # Vite 构建配置文件
 ```
 
-## 4. 数据流与状态管理
+## 4. 核心架构：工况切换与数据动态加载
 
-项目的数据流主要分为两部分：通过 HTTP API 获取的初始化/静态数据，和通过 WebSocket 获取的实时更新数据。
+本项目的核心交互逻辑围绕着由 [`src/components/Control/index.vue`](src/components/Control/index.vue) 组件控制的**运行工况模式切换**，以及各可视化组件（图表、仪表盘）对此变化的响应和数据的动态加载。
 
-### 4.1. 后端数据模拟 (Koa.js)
+### 4.1. Pinia 状态管理 (`src/stores/modeStore.js`)
+-   **`modesConfig`**: 一个包含所有预定义工况模式配置的数组。每个工况对象通常包含：
+    -   `id`: 唯一标识符 (例如, `'island_running'`)。
+    -   `label`: 在 `Control` 组件按钮上显示的文本 (例如, "孤岛运行")。
+    -   `description`: 该工况的详细文字说明。
+    -   `folderName`: 对应在 `public/data/` 目录下的数据子文件夹名称 (例如, `MG_Islanded_Mode_json`)。
+-   **`selectedModeId`**: 一个 `ref`，存储当前被选中的工况 `id`。
+-   **`selectedMode`**: 一个 `computed` 属性，根据 `selectedModeId` 返回当前选中工况的完整配置对象。
+-   **`selectedModeFolderPath`**: 一个 `computed` 属性，根据 `selectedMode.folderName` 动态生成当前工况数据文件夹的URL相对路径 (例如, `/data/MG_Islanded_Mode_json/`)。
+-   **`setSelectedMode(modeId)`**: 一个 action，用于更新 `selectedModeId`，由 `Control` 组件调用。
 
--   **HTTP API 服务**:
-    -   启动于 `koa/app.js`，监听端口 `7777`。
-    -   通过 `koa/middleware/koa_response_data.js` 中间件处理。
-    -   请求路径如 `http://127.0.0.1:7777/api/some_data` 会被映射到读取 `koa/data/some_data.json` 文件。
-    -   数据文件通过 `koa/utils/file_utils.js` 中的 `getFileJsonData` 函数读取（返回文件内容的字符串）。
--   **WebSocket 服务**:
-    -   启动于 `koa/app.js` (通过调用 `web_socket_service.listen()`)，监听端口 `9998`。
-    -   实现在 `koa/web_socket_service.js`。
-    -   当客户端发送 `action: 'getData'` 消息时，服务器会根据消息中的 `chartName` 读取对应的 `koa/data/{chartName}.json` 文件，并将文件内容作为 `data` 字段随原消息返回给该客户端。
-    -   对于其他 `action`，服务器会将消息广播给所有连接的客户端。
+### 4.2. `Control` 组件
+-   从 `modeStore` 获取 `modesConfig` 来渲染五个工况选择按钮。
+-   按钮的激活状态绑定到 `modeStore.selectedModeId`。
+-   点击按钮时，调用 `modeStore.setSelectedMode(mode.id)` 来更新全局选中的工况。
+-   下方的描述区域显示 `modeStore.selectedMode.description`。
 
-### 4.2. 前端数据获取
+### 4.3. 数据消费组件 (`Graph`, `Indicators`, `Panel`)
+这些组件采用统一模式来响应工况变化并加载数据：
+1.  **注入 Store**: `const modeStore = useModeStore();`
+2.  **监听变化**: 使用 `watch` 或 `watchEffect` 监听 `modeStore.selectedModeFolderPath` (以及组件内部可能有的其他数据选择器，如 `Graph` 组件的模块/参数选择)。
+3.  **构建文件路径**: 当监听到工况变化时，组件会结合 `modeStore.selectedModeFolderPath` 和自身配置所需的数据文件名 (例如，`Graph` 组件从其内部的 `dataTypesConfig` 获取文件名，`Panel` 组件从其 `gaugeConfigurations` 获取文件名) 来构建一个完整的 JSON 文件 URL。
+    -   数据文件名参考项目根目录下的 [`file_name_list.txt`](file_name_list.txt)。
+    -   例如路径: `/data/MG_Islanded_Mode_json/BatteryLog_SOC_pct.json`
+4.  **加载数据**: 使用 `fetch(filePath).then(res => res.json())` 异步加载数据。
+5.  **数据格式**: 加载到的 JSON 数据是形如 `[ { "time": 0, "value": 10 }, ... ]` 的对象数组。
+6.  **数据处理与渲染**:
+    -   **`Graph.vue` / `Indicators.vue`**: 将加载的数据转换为 ECharts 需要的格式并更新图表。其内部的 `dataTypesConfig` 对象是关键，它将组件内的模块/参数选择映射到具体的数据文件名和图表显示配置（如标题、Y轴名称等）。
+    -   **`Panel.vue`**: 为其三个仪表盘分别加载指定的数据文件。特别地，它包含一个**异步分块降采样**逻辑，用于处理从JSON文件加载的大量原始数据点（可能高达15万个），生成一个时间步长约为0.01秒的较稀疏数据序列。动画播放（启动、暂停、重置）基于这个降采样后的数据和一个独立的0.01秒步进的“显示用仿真时钟”进行。
 
--   **HTTP 请求**:
-    -   通过 `src/composables/useRequest.js` 封装的 `fetch` API 进行。
-    -   基础 URL 为 `http://127.0.0.1:7777/api/`。
-    -   包含固定的 `Authorization: Bearer SOMEJWTTOKEN` 请求头。
-    -   用于获取非实时数据。
--   **WebSocket 通信**:
-    -   通过 `src/utils/socket_service.js` (单例模式) 进行管理。
-    -   在 `src/main.js` 中全局初始化并尝试连接到 `ws://localhost:9998`。
-    -   服务支持自动重连和发送重试。
-    -   组件通过 `SocketService.Instance.registerCallBack(socketType, callback)` 订阅特定类型 (`socketType`) 的消息。
-    -   组件通过 `SocketService.Instance.send(payload)` 向服务器发送消息 (例如，请求数据)。
-    -   收到的消息结构通常包含 `socketType`, `action`, 和 `data`。对于 `action: 'getData'`，`data` 字段包含从 JSON 文件读取的字符串，前端回调中需要 `JSON.parse()`。
+## 5. 二次开发指南
 
-### 4.3. 状态管理 (Pinia)
+### 5.1. 添加新的图表/仪表盘组件
+1.  创建新的 `.vue` 组件在 `src/components/` 目录下。
+2.  如果需要根据全局工况动态加载数据：
+    *   在组件的 `<script setup>` 中导入并使用 `useModeStore`。
+    *   参考 `Graph.vue` 或 `Panel.vue` 的实现，设置 `watch` 或 `watchEffect` 来监听 `modeStore.selectedModeFolderPath`。
+    *   定义组件需要加载的数据文件名（参考 [`file_name_list.txt`](file_name_list.txt)）。
+    *   实现 `fetch` 逻辑来加载和处理数据。
+3.  在父组件（如 [`src/views/HomeView.vue`](src/views/HomeView.vue)）中引入并使用新组件，并调整布局。
 
--   项目使用 Pinia (`v2.0.28`) 进行状态管理。
--   Pinia 在 `src/main.js` 中全局安装。
--   具体的 store 定义在 `src/stores/` 目录下 (例如，`counter.js` 是一个示例)。业务相关的全局状态应通过 Pinia store 进行管理和共享。
+### 5.2. 添加新的运行工况模式
+1.  在 `public/data/` 目录下创建一个新的子文件夹，以该工况模式的标识符命名（例如, `MG_New_Mode_json`）。
+2.  将该工况模式对应的所有JSON数据文件（遵循 [`file_name_list.txt`](file_name_list.txt) 的命名规范）放入此新文件夹。
+3.  打开 [`src/stores/modeStore.js`](src/stores/modeStore.js) 文件。
+4.  在 `modesConfig` ref 数组中，添加一个新对象来描述这个新工况，包括 `id`, `label` (按钮文本), `description` (详细说明), 和 `folderName` (对应刚创建的文件夹名)。
 
-## 5. 路由配置 (`src/router/index.js`)
+### 5.3. 修改或添加数据系列
+1.  **更新数据文件**: 在相应的 `public/data/MODE_FOLDER/` 目录下添加或修改 JSON 文件。确保文件内容格式为 `[ { "time": ..., "value": ... }, ... ]`。
+2.  **更新 `file_name_list.txt`**: 如果是新的数据系列，在此文件中添加一行描述其文件名和含义。
+3.  **更新组件配置**:
+    *   对于 `Graph.vue` 和 `Indicators.vue`：如果新数据系列需要在这些图表的下拉菜单中可选，或者现有选择需要映射到新的文件名，请更新它们各自内部的 `dataTypesConfig` 对象。确保 `chartName` 对应新的文件名（不含 `.json` 后缀），并更新 `text`, `yAxisName`, `seriesName`。可能还需要调整 `moduleOptions` 或 `parameterOptions`。
+    *   对于 `Panel.vue`：如果新数据系列是用于仪表盘的，请更新其内部的 `gaugeConfigurations` 数组，修改对应仪表盘的 `fileName`, `name`, `unit`。
 
--   使用 Vue Router (`v4.1.6`) 和 HTML5 History 模式。
--   **主要路由**:
-    -   `/` (name: `home`): 指向 `HomeView.vue` (直接导入)。这是应用的主入口和仪表盘。
-    -   其他路径如 `/indicators`, `/graph`, `/map`, `/control`, `/epie`, `/aichat` 分别指向对应的视图组件 (例如 `IndicatorsView`, `GraphView` 等)，这些视图均采用**路由懒加载**方式导入，以优化初始加载性能。
+## 6. 注意事项
+-   **数据文件路径**: 所有工况的 JSON 数据文件必须放置在 `public/data/` 目录下的对应工况子文件夹中。前端 `fetch` 的路径是相对于 `public` 目录的。
+-   **文件名精确性**: JSON 文件名必须与组件配置（`dataTypesConfig`, `gaugeConfigurations`）中指定的 `fileName` 完全匹配（包括大小写）。参考 [`file_name_list.txt`](file_name_list.txt)。
+-   **数据量与性能**: 项目中的数据文件可能非常大。`Panel.vue` 已实现了异步分块降采样。如果 `Graph.vue` 或 `Indicators.vue` 在加载非常大的数据集时出现性能问题，也应考虑为它们引入类似的降采样或数据窗口化策略。
+-   **`SocketService.js`**: 此文件当前在核心图表数据加载流程中已不再使用。如果项目中仍有其他功能依赖它，请确保其逻辑与当前需求兼容或进行相应调整。
 
-## 6. 核心组件与 ECharts 使用
-
-项目包含多个位于 `src/components/` 的核心组件，大量使用 ECharts 进行数据可视化。
-
--   **ECharts 实例和主题**:
-    -   ECharts 实例和 `SocketService` 实例通常通过 Vue 的 `provide/inject` API 在应用层面提供，组件内通过 `inject` 获取。
-    -   预定义了多种 ECharts 主题 (如 'chalk') 存放于 `src/assets/theme/`，在初始化图表时使用。
--   **代表性组件 (`Graph/index.vue`)**:
-    -   **注入依赖**: `const echarts = inject('echarts')`, `const socket = inject('socket')`。
-    -   **初始化**: 在 `onMounted` 中调用 `echarts.init()` 初始化图表。
-    -   **数据获取**:
-        -   通过 `socket.registerCallBack('graphData', getChartData)` 监听 WebSocket 数据。
-        -   通过 `socket.send({ action: 'getData', socketType: 'graphData', chartName: '...' })` 请求数据。
-    -   **动态更新**: `getChartData` 回调处理收到的数据，并调用 `updataChart()` (更新图表配置) 和 `updataChartData()` (更新图表数据 `dataset.source`)。
-    -   **响应式适配**: `screenAdapter` 方法用于图表尺寸的响应式调整。
--   **其他图表组件** (如 `EPie/index.vue`, `Gridmap/index.vue`) 可能遵循类似的数据获取和渲染模式。
--   **新增信息卡片组件** (`ProjectInfoCard.vue`, `KeyPerformanceIndicators.vue`, `BatteryDetailedStatus.vue`, `EconomicBenefitAnalysis.vue`) 主要用于在 `HomeView.vue` 的第二页展示信息，目前数据源多为静态或待对接。
-
-## 7. 注意事项与修改建议
-
--   **WebSocket 回调注销**: `src/utils/socket_service.js` 中的 `unRegisterCallBack` 方法实现可能不正确 (目前是赋值而非删除)，如果需要严格的注销逻辑，应修改为 `delete this.callBackMapping[socketType]`。
--   **HTTP API Token**: `src/composables/useRequest.js` 中使用了硬编码的 JWT Token。在实际部署或需要安全性的场景下，应替换为动态获取和管理的 Token 机制。
--   **数据文件路径**: 后端服务强依赖于 `koa/data/` 目录下的 JSON 文件结构和命名。新增数据或修改图表时，需确保对应的 JSON 文件存在且路径正确。
--   **ECharts 实例响应性**: 注意 `Graph/index.vue` 中注释提到的 ECharts 实例不应为 Vue 3 响应式对象的问题。
--   **Pinia Store**: 检查 `src/stores/` 目录，根据实际业务需求组织和使用 Pinia store 来管理共享的应用状态。
-
----
-
-希望这份指南能帮助您的同事更好地理解和参与到项目中！
+希望这份更新的指南能为后续的开发工作提供清晰的指引！
