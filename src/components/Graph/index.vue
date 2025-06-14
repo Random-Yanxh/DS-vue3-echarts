@@ -6,6 +6,7 @@ const echarts = inject('echarts')
 const graph_chart = ref(null)
 // const chartInstance = ref(null)      //echarts实例不能是vue3响应式对象，否则有些类型的tooltip不显示
 let chartInstance = null
+let resizeObserver = null;
 
 const initChart = () => {
     chartInstance = echarts.init(graph_chart.value, 'chalk')
@@ -390,7 +391,7 @@ const titleFontSize = ref(0) // Base for main title (though text is hidden), can
 const controlTextSize = ref(0) // New ref for dropdown control text size
 
 const screenAdapter = () => {
-    if (!graph_chart.value) return;
+    if (!graph_chart.value || !chartInstance) return;
     const chartWidth = graph_chart.value.offsetWidth;
     titleFontSize.value = chartWidth / 100 * 3.6; // This is for ECharts internal elements like axis names
     // controlTextSize.value = chartWidth / 100 * 1.6; // 移除 controlTextSize, 使用固定像素值
@@ -416,12 +417,29 @@ onMounted(() => {
         value: ''
     });
     // 初始加载时，标题将由 watchEffect 设置，数据由上面的 socket.send 获取
-    screenAdapter()
+    screenAdapter() // Initial call
     window.addEventListener('resize', screenAdapter)
+
+    // Setup ResizeObserver
+    if (graph_chart.value) {
+        resizeObserver = new ResizeObserver(() => {
+            screenAdapter();
+        });
+        resizeObserver.observe(graph_chart.value);
+    }
 })
 onBeforeUnmount(() => {
     window.removeEventListener('resize', screenAdapter)
     socket.unRegisterCallBack('graphData')
+
+    // Cleanup ResizeObserver
+    if (resizeObserver && graph_chart.value) {
+        resizeObserver.unobserve(graph_chart.value);
+    }
+    if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+    }
 })
 defineExpose({
     screenAdapter

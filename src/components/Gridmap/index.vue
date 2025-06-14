@@ -4,6 +4,7 @@ import useRequest from '@/composables/useRequest'
 const echarts = inject('echarts')
 const map_chart = ref(null)
 let chartInstance = null
+let resizeObserver = null;
 
 // 将 categories 定义移到这里，使其在 updataChart 和 updataChartData 中都可访问
 const categories = [
@@ -339,7 +340,9 @@ const getData = async () => {
 
 const screenAdapter = () => {
     // updataChart() // 从此处移除，以避免重置数据
-    chartInstance.resize()
+    if (chartInstance && map_chart.value) { // Add checks
+        chartInstance.resize()
+    }
 }
 
 onMounted(() => {
@@ -348,9 +351,28 @@ onMounted(() => {
     getData()       // 3. 获取数据并填充 series (调用 updataChartData)
     screenAdapter() // 4. 初始resize (主要为了确保图表尺寸正确)
     window.addEventListener('resize', screenAdapter)
+
+    // Setup ResizeObserver
+    if (map_chart.value) {
+        resizeObserver = new ResizeObserver(() => {
+            screenAdapter();
+        });
+        resizeObserver.observe(map_chart.value);
+    }
+
 })
 onBeforeUnmount(() => {
     window.removeEventListener('resize', screenAdapter)
+
+    // Cleanup ResizeObserver
+    if (resizeObserver && map_chart.value) {
+        resizeObserver.unobserve(map_chart.value);
+    }
+    if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+    }
+
 })
 defineExpose({
     screenAdapter // screenAdapter 现在只调用 resize

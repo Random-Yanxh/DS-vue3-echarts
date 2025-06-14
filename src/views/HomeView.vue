@@ -1,11 +1,12 @@
 <script setup>
 import { reactive, ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
-import EPie from '@/components/EPie/index.vue'
+// import EPie from '@/components/EPie/index.vue'
 import Gridmap from '@/components/Gridmap/index.vue'
 import Control from '@/components/Control/index.vue'
 import Indicators from '@/components/Indicators/index.vue'
-import Aichat from '@/components/Aichat/index.vue'
+// import Aichat from '@/components/Aichat/index.vue'
 import Graph from '@/components/Graph/index.vue'
+import Panel from '@/components/Panel/index.vue'
 
 // 导入新的四个组件
 import ProjectInfoCard from '../components/ProjectInfoCard/index.vue'
@@ -19,15 +20,17 @@ const fullScreenStatus = reactive({
   indicators: false,
   gridmap: false,
   control: false,
-  epie: false,
-  aichat: false,
+  // epie: false,
+  // aichat: false,
+  panel: false,
 })
 const graph = ref(null)
 const gridmap = ref(null)
-const epie = ref(null)
+// const epie = ref(null)
 const indicators = ref(null)
-const aichat = ref(null)
+// const aichat = ref(null)
 const control = ref(null)
+const panel = ref(null)
 
 const changeSize = async (value) => {
   fullScreenStatus[value] = !fullScreenStatus[value]
@@ -101,11 +104,11 @@ const scrollToPage = (pageIndex) => {
           <span @click="changeSize('gridmap')" class="iconfont enlargement"
             :class="fullScreenStatus.gridmap ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
         </div>
-        <div class="epie" :class="fullScreenStatus.epie ? 'fullscreen' : ''">
+        <!-- <div class="epie" :class="fullScreenStatus.epie ? 'fullscreen' : ''">
           <EPie ref="epie"></EPie>
           <span @click="changeSize('epie')" class="iconfont enlargement"
             :class="fullScreenStatus.epie ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
-        </div>
+        </div> -->
         <div class="indicators" :class="fullScreenStatus.indicators ? 'fullscreen' : ''">
           <Indicators ref="indicators"></Indicators>
           <span @click="changeSize('indicators')" class="iconfont enlargement"
@@ -116,11 +119,12 @@ const scrollToPage = (pageIndex) => {
           <span @click="changeSize('control')" class="iconfont enlargement"
             :class="fullScreenStatus.control ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
         </div>
-        <div class="aichat" :class="fullScreenStatus.aichat ? 'fullscreen' : ''">
+        <!-- <div class="aichat" :class="fullScreenStatus.aichat ? 'fullscreen' : ''">
           <Aichat ref="aichat"></Aichat>
           <span @click="changeSize('aichat')" class="iconfont enlargement"
             :class="fullScreenStatus.aichat ? 'icon-compress-alt' : 'icon-expand-alt'"></span>
-        </div>
+        </div> -->
+        <Panel class="panel-grid-item" ref="panel"></Panel>
       </div>
     </section>
     <section id="page2" class="page-section">
@@ -189,15 +193,15 @@ const scrollToPage = (pageIndex) => {
   background-repeat: no-repeat;
   background-size: cover;
   display: grid;
-  grid-template-rows: 8% 50% 10% 25%;
-  grid-template-columns: 28% 42% 28%;
+  grid-template-rows: 8% 42.5% 13.5% 29%;
+  grid-template-columns: 33% 37% 28%;
   justify-content: space-between;
   align-content: space-around;
   grid-template-areas:
     "header header header"
-    "graph   gridmap    epie"
-    "indicators  gridmap   aichat"
-    "indicators  control  aichat"
+    "graph   gridmap    panel"
+    "indicators  gridmap   panel"
+    "indicators  control  panel"
   ;
   box-sizing: border-box; /* Ensure padding doesn't break layout */
 }
@@ -267,6 +271,10 @@ const scrollToPage = (pageIndex) => {
 
 .aichat {
   grid-area: aichat;
+}
+
+.panel-grid-item {
+  grid-area: panel;
 }
 
 .enlargement {
