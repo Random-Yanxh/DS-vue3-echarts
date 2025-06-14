@@ -37,16 +37,6 @@ const router = createRouter({
       name: 'control',
       component: () => import('../views/ControlView/index.vue')
     },
-    {
-      path: '/epie',
-      name: 'epie',
-      component: () => import('../views/EPieView/index.vue')
-    },
-    {
-      path: '/aichat',
-      name: 'aichat',
-      component: () => import('../views/AichatView/index.vue')
-    },
   ]
 })
 
