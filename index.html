@@ -5,9 +5,47 @@
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vite App</title>
+    <script>
+     window.difyChatbotConfig = {
+      token: 'nvhzMC9jvBEVPfYF',
+      systemVariables: {
+        // user_id: 'YOU CAN DEFINE USER ID HERE',
+        // conversation_id: 'YOU CAN DEFINE CONVERSATION ID HERE, IT MUST BE A VALID UUID',
+      },
+     }
+    </script>
+    <style>
+      /* Dify Chatbot Customizations */
+      :root {
+        /* Reverted to original color #1C64F2 with 80% opacity */
+        --dify-chatbot-bubble-button-bg-color: rgba(28, 100, 242, 0.8); 
+        --dify-chatbot-bubble-button-width: 48px;
+        --dify-chatbot-bubble-button-height: 48px;
+        --dify-chatbot-bubble-button-border-radius: 24px; /* 保持圆形 */
+        --dify-chatbot-bubble-button-box-shadow: rgba(0, 0, 0, 0.3) 0px 3px 8px 0px; /* 更柔和、现代的阴影 */
+      }
+
+      /* 确保Dify按钮使用我们定义的CSS变量 */
+      #dify-chatbot-bubble-button {
+        background-color: var(--dify-chatbot-bubble-button-bg-color) !important; 
+      }
+
+      #dify-chatbot-bubble-window {
+        width: 24rem !important; /* 根据您之前的设置 */
+        height: 40rem !important; /* 根据您之前的设置 */
+        border: 1px solid #2a3a5a !important; /* 深色、与主题协调的边框，替代纯黑 */
+        border-radius: 12px !important; /* 更柔和的圆角 */
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important; /* 更具层次感的窗口阴影 */
+      }
+    </style>
   </head>
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
+    <script
+     src="https://udify.app/embed.min.js"
+     id="nvhzMC9jvBEVPfYF"
+     defer>
+    </script>
   </body>
 </html>
